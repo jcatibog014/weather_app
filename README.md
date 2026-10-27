@@ -111,4 +111,6 @@ When something is wrong, the API says so:
 
 ## Put it online (Render)
 
-The file `render.yaml` tells Render what to do. On Render, choose **New → Blueprint** and pick this repository. Every merge into `main` updates the website.
+The file `render.yaml` tells Render what to do. On Render, choose **New → Blueprint** and pick this repository. The website name is `ambon-alert`, so the link is like `ambon-alert.onrender.com`. Every merge into `main` updates the website.
+
+The free plan sleeps after 15 minutes with no visitors. The next visit wakes it up. This takes about 30 to 50 seconds.

@@ -1,11 +1,12 @@
 # Render "Blueprint": tells Render how to build and run "Ambon Alert".
-# (The service keeps the name weather-app: renaming it here would make Render build a second service.)
+# The service name becomes the web address: ambon-alert.onrender.com
+# (Render adds a few letters if that name is already taken).
 # Render reads this file when you choose New -> Blueprint and pick this repo.
 # Every merge into main deploys the site again by itself.
 # No API key is needed: Open-Meteo is free and open.
 services:
   - type: web
-    name: weather-app
+    name: ambon-alert
     runtime: python
     plan: free  # sleeps after 15 quiet minutes; the next visit wakes it up (about 30-50 s)
     branch: main
