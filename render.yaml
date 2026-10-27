@@ -1,0 +1,15 @@
+# Render "Blueprint": tells Render how to build and run the weather app.
+# Render reads this file when you choose New -> Blueprint and pick this repo.
+# Every merge into main deploys the site again by itself.
+# No API key is needed: Open-Meteo is free and open.
+services:
+  - type: web
+    name: weather-app
+    runtime: python
+    plan: free  # sleeps after 15 quiet minutes; the next visit wakes it up (about 30-50 s)
+    branch: main
+    buildCommand: pip install -r requirements.txt
+    # gunicorn calls create_app() to build the app, then serves it on Render's port.
+    startCommand: gunicorn "weather:create_app()" --bind 0.0.0.0:$PORT
+    healthCheckPath: /
+    autoDeploy: true

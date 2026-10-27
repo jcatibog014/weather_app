@@ -1,0 +1,75 @@
+{# All drawings, once, as an SVG "sprite". A drawing is shown with
+   <svg><use href="#wx-rain"></use></svg>, so the page holds each shape only once.
+
+   wx-* are the weather drawings, one per icon name in weather/conditions.py
+   (tests/test_views.py checks that none is missing). Their colours come from
+   CSS variables (.sun, .cloud, .drops…), so they change with the theme.
+   i-* are the small interface icons; they use the text colour (currentColor). #}
+<svg xmlns="http://www.w3.org/2000/svg" class="sprite" aria-hidden="true" focusable="false">
+  <defs>
+    {# Shapes the drawings are built from (64 × 64 grid). #}
+    <path id="shape-cloud" d="M18 46h28a10 10 0 0 0 .6-19.98 14 14 0 0 0-26.8 4.2A8 8 0 0 0 18 46z"/>
+    <g id="shape-sun">
+      <circle cx="32" cy="32" r="12"/>
+      <path d="M32 6v6M32 52v6M6 32h6M52 32h6M13.6 13.6l4.2 4.2M46.2 46.2l4.2 4.2M13.6 50.4l4.2-4.2M46.2 17.8l4.2-4.2" fill="none" stroke-width="4.5" stroke-linecap="round"/>
+    </g>
+    <path id="shape-moon" d="M42 10A22 22 0 1 0 54 42 18 18 0 0 1 42 10z"/>
+
+    <symbol id="wx-clear" viewBox="0 0 64 64">
+      <use href="#shape-sun" class="sun"/>
+    </symbol>
+    <symbol id="wx-clear-night" viewBox="0 0 64 64">
+      <use href="#shape-moon" class="moon"/>
+    </symbol>
+    <symbol id="wx-partly-cloudy" viewBox="0 0 64 64">
+      <use href="#shape-sun" class="sun" transform="translate(2 2) scale(.6)"/>
+      <use href="#shape-cloud" class="cloud" transform="translate(6 8)"/>
+    </symbol>
+    <symbol id="wx-partly-cloudy-night" viewBox="0 0 64 64">
+      <use href="#shape-moon" class="moon" transform="translate(2 0) scale(.6)"/>
+      <use href="#shape-cloud" class="cloud" transform="translate(6 8)"/>
+    </symbol>
+    <symbol id="wx-cloudy" viewBox="0 0 64 64">
+      <use href="#shape-cloud" class="cloud-back" transform="translate(20 4) scale(.7)"/>
+      <use href="#shape-cloud" class="cloud" transform="translate(-4 8)"/>
+    </symbol>
+    <symbol id="wx-fog" viewBox="0 0 64 64">
+      <use href="#shape-cloud" class="cloud" transform="translate(-1.5 -8)"/>
+      <path class="fog-lines" d="M12 46h40M18 53h34M14 60h30"/>
+    </symbol>
+    <symbol id="wx-drizzle" viewBox="0 0 64 64">
+      <use href="#shape-cloud" class="cloud" transform="translate(-1.5 -6)"/>
+      <path class="drops" d="M22 48l-1.5 4M32 48l-1.5 4M42 48l-1.5 4M27 56l-1.5 4M37 56l-1.5 4"/>
+    </symbol>
+    <symbol id="wx-rain" viewBox="0 0 64 64">
+      <use href="#shape-cloud" class="cloud" transform="translate(-1.5 -6)"/>
+      <path class="drops" d="M23 46l-4 10M33 46l-4 10M43 46l-4 10"/>
+    </symbol>
+    <symbol id="wx-snow" viewBox="0 0 64 64">
+      <use href="#shape-cloud" class="cloud" transform="translate(-1.5 -6)"/>
+      <g class="flakes">
+        <circle cx="20" cy="49" r="3"/><circle cx="32" cy="49" r="3"/><circle cx="44" cy="49" r="3"/>
+        <circle cx="26" cy="57" r="3"/><circle cx="38" cy="57" r="3"/>
+      </g>
+    </symbol>
+    <symbol id="wx-thunder" viewBox="0 0 64 64">
+      <use href="#shape-cloud" class="cloud" transform="translate(-1.5 -6)"/>
+      <path class="bolt" d="M33 40l-9 13h7l-4 9 13-15h-7l4-7z"/>
+    </symbol>
+
+    {# Interface icons (24 × 24 grid). #}
+    <symbol id="i-search" viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></symbol>
+    <symbol id="i-locate" viewBox="0 0 24 24"><circle cx="12" cy="12" r="7"/><circle cx="12" cy="12" r="2.5" fill="currentColor"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3"/></symbol>
+    <symbol id="i-star" viewBox="0 0 24 24"><path d="m12 3.5 2.6 5.3 5.9.9-4.3 4.1 1 5.8-5.2-2.7-5.2 2.7 1-5.8-4.3-4.1 5.9-.9z"/></symbol>
+    <symbol id="i-refresh" viewBox="0 0 24 24"><path d="M20 12a8 8 0 1 1-2.3-5.7"/><path d="M20 4v5h-5"/></symbol>
+    <symbol id="i-close" viewBox="0 0 24 24"><path d="M6 6l12 12M18 6 6 18"/></symbol>
+    <symbol id="i-moon" viewBox="0 0 24 24"><path d="M20 14.5A8 8 0 0 1 9.5 4a8 8 0 1 0 10.5 10.5z"/></symbol>
+    <symbol id="i-sun" viewBox="0 0 24 24"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/></symbol>
+    <symbol id="i-arrow" viewBox="0 0 24 24"><path d="M12 20V5M6 11l6-6 6 6"/></symbol>
+    <symbol id="i-drop" viewBox="0 0 24 24"><path d="M12 3.5s6 6.4 6 10.7a6 6 0 0 1-12 0C6 9.9 12 3.5 12 3.5z"/></symbol>
+  </defs>
+</svg>
+
+{% macro icon(name, class="ui-icon", size=20) -%}
+<svg class="{{ class }}" width="{{ size }}" height="{{ size }}" aria-hidden="true" focusable="false"><use href="#{{ name }}"></use></svg>
+{%- endmacro %}

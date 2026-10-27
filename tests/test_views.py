@@ -6,6 +6,7 @@ import pytest
 
 from weather import client as weather_client
 from weather.client import WeatherServiceError
+from weather.conditions import WMO_CODES, condition
 
 
 def raise_error(kind):
@@ -18,7 +19,21 @@ def raise_error(kind):
 def test_home_page(client):
     response = client.get("/")
     assert response.status_code == 200
-    assert "<title>Weather" in response.get_data(as_text=True)
+    html = response.get_data(as_text=True)
+    assert "<title>Weather" in html
+    assert 'role="combobox"' in html
+    # Every state app.js switches between is on the page.
+    for view in ("welcome", "skeleton", "error-card", "weather"):
+        assert f'id="{view}"' in html
+    assert "open-meteo.com" in html  # Open-Meteo's licence asks for credit
+
+
+def test_every_weather_icon_has_a_drawing(client):
+    html = client.get("/").get_data(as_text=True)
+    for code in WMO_CODES:
+        for is_day in (True, False):
+            icon = condition(code, is_day)["icon"]
+            assert f'<symbol id="wx-{icon}"' in html, icon
 
 
 def test_missing_page_is_html(client):
