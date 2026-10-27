@@ -1,9 +1,22 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">
-  <!-- The app icon: the "partly cloudy" drawing from _icons.html on a blue tile. -->
-  <rect width="64" height="64" rx="14" fill="#1d5fa8"/>
-  <g transform="translate(3 3) scale(.6)" fill="#fbbf24" stroke="#fbbf24">
-    <circle cx="32" cy="32" r="12"/>
-    <path d="M32 6v6M32 52v6M6 32h6M52 32h6M13.6 13.6l4.2 4.2M46.2 46.2l4.2 4.2M13.6 50.4l4.2-4.2M46.2 17.8l4.2-4.2" fill="none" stroke-width="4.5" stroke-linecap="round"/>
-  </g>
-  <path transform="translate(5 8)" fill="#ffffff" d="M18 46h28a10 10 0 0 0 .6-19.98 14 14 0 0 0-26.8 4.2A8 8 0 0 0 18 46z"/>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="170 170 460 460">
+  <!-- The "Ambon Alert" logo, drawn from docs/brand/ambon-alert-logo.png.
+       The header, the favicon and the PNG app icons all come from this file. -->
+  <title>Ambon Alert</title>
+  <defs>
+    <!-- The cloud is drawn twice: light blue, then dark blue cut to its right half. -->
+    <g id="cloud">
+      <circle cx="335" cy="423" r="90"/>
+      <circle cx="443" cy="373" r="115"/>
+      <circle cx="535" cy="437" r="75"/>
+      <rect x="255" y="423" width="350" height="91" rx="48"/>
+    </g>
+    <clipPath id="right-half">
+      <rect x="428" y="200" width="250" height="360"/>
+    </clipPath>
+  </defs>
+  <circle cx="313" cy="313" r="76" fill="#f6b72f"/>
+  <path d="M313 192v24M192 313h24M229 229l16 16M397 229l-16 16" fill="none" stroke="#f6b72f" stroke-width="20" stroke-linecap="round"/>
+  <use href="#cloud" fill="#6ea8ee"/>
+  <use href="#cloud" fill="#2f60b9" clip-path="url(#right-half)"/>
+  <path fill="#2f60b9" d="M467 545c-6 9-22 28-22 45a22 22 0 0 0 44 0c0-17-16-36-22-45zM551 545c-6 9-22 28-22 45a22 22 0 0 0 44 0c0-17-16-36-22-45z"/>
 </svg>

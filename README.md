@@ -1,6 +1,10 @@
-# weather_app
+<img src="weather/static/icons/logo.svg" alt="" width="96">
+
+# Ambon Alert
 
 A weather website. Type a city. You see the weather now, the next 24 hours and the next 7 days.
+
+The code is in the `weather_app` repository. The letters are the Fredoka font.
 
 The weather data comes from [Open-Meteo](https://open-meteo.com/). Open-Meteo is free. You do not need a key.
 
@@ -63,6 +67,7 @@ The app always tells you what is happening.
 | requests | A Python library | HTTP calls to Open-Meteo |
 | pytest | A Python test tool | The tests |
 | HTML, CSS | Web page languages | The page and its look |
+| Fredoka (Google Fonts) | A round, friendly font | All the letters in the app |
 | JavaScript | The language of the browser | `fetch()`, search, loading and error states |
 | JSON | A data format | The data between the server and the browser |
 | Open-Meteo | A free weather API | The weather data and the city search |

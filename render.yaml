@@ -1,4 +1,5 @@
-# Render "Blueprint": tells Render how to build and run the weather app.
+# Render "Blueprint": tells Render how to build and run "Ambon Alert".
+# (The service keeps the name weather-app: renaming it here would make Render build a second service.)
 # Render reads this file when you choose New -> Blueprint and pick this repo.
 # Every merge into main deploys the site again by itself.
 # No API key is needed: Open-Meteo is free and open.
