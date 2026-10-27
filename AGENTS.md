@@ -9,7 +9,7 @@ A weather web app in Python (Flask, no database, no login). It shows the current
 Python 3.13 is at `%LOCALAPPDATA%\Programs\Python\Python313\python.exe`. Use the virtual environment:
 
 - Install: `.venv\Scripts\python -m pip install -r requirements.txt` (create `.venv` with `python -m venv .venv` first if it's missing).
-- Run: `.venv\Scripts\flask --app weather run --debug`, then open http://127.0.0.1:5000.
+- Run: `.venv\Scripts\flask --app weather run --debug --port 5001`, then open http://127.0.0.1:5001. (Port 5001, because Swap Meter uses 5000.)
 - Test: `.venv\Scripts\python -m pytest`. Tests never use the internet.
 
 ## Architecture
