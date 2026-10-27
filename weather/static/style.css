@@ -24,6 +24,11 @@
   --shimmer: rgb(255 255 255 / 70%);
   --shadow: 0 1px 2px rgb(19 32 48 / 6%), 0 10px 30px rgb(19 32 48 / 8%);
   --radius: 18px;
+  /* coloured borders, from the logo: big cards fade sun -> sky -> deep blue */
+  --edge-sun: #f6b72f;
+  --edge-sky: #6ea8ee;
+  --edge-deep: #2f60b9;
+  --tile-border: #a9c7ef;     /* the small boxes and 7-day rows inside a card */
   /* weather drawings */
   --sun: #f5a524;
   --moon: #8b93c9;
@@ -55,6 +60,10 @@
     --muted: #a2b1c2;
     --border: #26364a;
     --control-border: #687b91;
+    --edge-sun: #fbbf24;
+    --edge-sky: #4f8ee0;
+    --edge-deep: #3a6fd0;
+    --tile-border: #2f4d78;
     --accent: #82b8f5;
     --accent-text: #0c141e;
     --accent-soft: #1d3350;
@@ -94,6 +103,10 @@
   --muted: #a2b1c2;
   --border: #26364a;
   --control-border: #687b91;
+  --edge-sun: #fbbf24;
+  --edge-sky: #4f8ee0;
+  --edge-deep: #3a6fd0;
+  --tile-border: #2f4d78;
   --accent: #82b8f5;
   --accent-text: #0c141e;
   --accent-soft: #1d3350;
@@ -390,7 +403,7 @@ button { font: inherit; }
   margin: 0;
   padding: 6px;
   list-style: none;
-  border: 1px solid var(--border);
+  border: 1px solid var(--tile-border);
   border-radius: 16px;
   background: var(--card);
   box-shadow: var(--shadow);
@@ -452,7 +465,7 @@ button { font: inherit; }
   align-items: center;
   gap: 4px;
   padding: 4px 4px 4px 16px;
-  border: 1px solid var(--border);
+  border: 1px solid var(--tile-border);
   border-left: 4px solid var(--focus);
   border-radius: 12px;
   background: var(--card);
@@ -466,9 +479,13 @@ button { font: inherit; }
 
 .card {
   padding: 20px;
-  border: 1px solid var(--border);
+  border: 2px solid transparent;
   border-radius: var(--radius);
-  background: var(--card);
+  /* Two layers: the card colour fills the inside (padding-box), and the
+     logo colours show only under the see-through border (border-box). */
+  background:
+    linear-gradient(var(--card), var(--card)) padding-box,
+    linear-gradient(135deg, var(--edge-sun), var(--edge-sky) 45%, var(--edge-deep)) border-box;
   box-shadow: var(--shadow);
 }
 .card h2 { margin-bottom: 12px; font-size: 1rem; color: var(--muted); }
@@ -533,7 +550,7 @@ button { font: inherit; }
   gap: 10px;
   margin: 0;
 }
-.detail { padding: 10px 12px; border-radius: 12px; background: var(--card-2); }
+.detail { padding: 10px 12px; border: 1px solid var(--tile-border); border-radius: 12px; background: var(--card-2); }
 .detail dt { font-size: 0.85rem; color: var(--muted); }
 .detail dd { display: flex; align-items: center; gap: 4px; margin: 2px 0 0; font-size: 1.05rem; font-weight: 700; }
 /* app.js turns the arrow with --deg (the way the wind blows). */
@@ -571,11 +588,12 @@ button { font: inherit; }
   gap: 4px;
   width: 70px;
   padding: 10px 4px;
+  border: 1px solid var(--tile-border);
   border-radius: 14px;
   background: var(--card-2);
   scroll-snap-align: start;
 }
-.hour:first-child { background: var(--accent-soft); }
+.hour:first-child { border-color: var(--edge-deep); background: var(--accent-soft); }
 .hour-time { font-size: 0.85rem; color: var(--muted); }
 .hour:first-child .hour-time,
 .hour.new-day .hour-time { color: var(--text); font-weight: 700; }
@@ -587,7 +605,14 @@ button { font: inherit; }
 
 /* ---------- Next 7 days ---------- */
 
-.daily { margin: 0; padding: 0; list-style: none; }
+/* The week is a table with a coloured frame and coloured lines between days. */
+.daily {
+  margin: 0;
+  padding: 0 12px;
+  list-style: none;
+  border: 1px solid var(--tile-border);
+  border-radius: 14px;
+}
 .day {
   position: relative;
   display: grid;
@@ -595,7 +620,7 @@ button { font: inherit; }
   align-items: center;
   gap: 10px;
   padding: 6px 0;
-  border-top: 1px solid var(--border);
+  border-top: 1px solid var(--tile-border);
 }
 .day:first-child { border-top: 0; }
 .day-name { display: flex; flex-direction: column; line-height: 1.25; font-weight: 700; }
@@ -664,7 +689,9 @@ button { font: inherit; }
   .current-main .wx-big { width: 72px; height: 72px; }
   .current-temp { font-size: 3.75rem; }
   .details { grid-template-columns: repeat(2, 1fr); gap: 8px; }
+  .detail { padding: 10px; } /* makes room for the coloured borders */
 
+  .daily { padding: 0 8px; }
   .day { grid-template-columns: 3rem 32px 2.75rem 2.25rem 1fr 2.25rem; gap: 6px; }
   .day .wx-icon { width: 32px; height: 32px; }
 }
