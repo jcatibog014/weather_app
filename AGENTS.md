@@ -55,5 +55,5 @@ The browser calls only our own `/api/...` routes; Flask calls Open-Meteo.
 - Keep comments teaching-oriented but brief. Add or update a test with every behaviour change.
 - Never call Open-Meteo from a test. Save a new fixture instead.
 - README screenshots live in `docs/screenshots/`. Retake them when the UI changes visibly.
-- Deploy: `render.yaml` (Render Blueprint, free plan, `gunicorn "weather:create_app()"`). The owner does the Render steps.
+- Deploy: `render.yaml` (Render Blueprint, service `ambon-alert`, free plan, `gunicorn "weather:create_app()"`). The owner does the Render steps. Once it is live, don't rename the service: Render would build a second one.
 - `docs/PLAN.md` is the roadmap: the UI/UX layout, the loading/empty/error/offline states, and the build stages (one PR each).
