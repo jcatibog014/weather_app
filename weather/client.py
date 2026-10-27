@@ -58,13 +58,25 @@ IMPERIAL_PARAMS = {
 class WeatherServiceError(Exception):
     """Open-Meteo didn't give us usable data.
 
-    kind is one of: "timeout", "connection", "upstream" (an error status
-    like 500) or "bad_data" (the answer isn't the JSON we expected).
+    kind is one of: "timeout", "connection", "busy" (429: too many requests),
+    "upstream" (another error status like 500) or "bad_data" (the answer
+    isn't the JSON we expected). For an error status, `status` is that code
+    and `reason` is Open-Meteo's own explanation, for the server log.
     """
 
-    def __init__(self, kind):
+    def __init__(self, kind, status=None, reason=""):
         super().__init__(kind)
         self.kind = kind
+        self.status = status
+        self.reason = reason
+
+
+def error_reason(response):
+    """Open-Meteo explains its errors as {"error": true, "reason": "..."}."""
+    try:
+        return str(response.json().get("reason", ""))[:200]
+    except (ValueError, AttributeError):  # not JSON, or not a JSON object
+        return ""
 
 
 def get_json(url, params, headers=None):
@@ -77,7 +89,10 @@ def get_json(url, params, headers=None):
         raise WeatherServiceError("connection") from error
 
     if not response.ok:  # any status from 400 up
-        raise WeatherServiceError("upstream")
+        # 429 Too Many Requests: the free limit is counted per IP address, and
+        # a free host shares its address with many other apps.
+        kind = "busy" if response.status_code == 429 else "upstream"
+        raise WeatherServiceError(kind, response.status_code, error_reason(response))
 
     try:
         data = response.json()
