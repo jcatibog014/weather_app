@@ -28,6 +28,7 @@ def test_home_page(client):
     assert "open-meteo.com" in html  # Open-Meteo's licence asks for credit
     assert "openstreetmap.org/copyright" in html  # so does OpenStreetMap's
     assert 'id="welcome-locate"' in html
+    assert 'id="local-date"' in html and 'id="local-time"' in html
 
 
 def test_every_weather_icon_has_a_drawing(client):

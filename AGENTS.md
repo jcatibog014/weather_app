@@ -41,6 +41,7 @@ The browser calls only our own `/api/...` routes; Flask calls Open-Meteo.
   - Start: the URL (`?name=&region=&lat=&lon=&here=1`) wins. Otherwise `startWithMyLocation()` runs: it skips asking if the permission is already `denied`, else calls `locateMe(true)`. On failure `fallBack()` loads `weather.lastPlace`, or else shows the welcome card's message (`setWelcome()`). There are no example cities.
   - `locateMe(auto)` gets the position, then `nameOf()` asks `/api/place` (6 s timeout). If the name lookup fails, the place is `{name: "Your location", unnamed: true}`, with no star and not in recent. Never show raw coordinates. Places from geolocation have `isMyLocation` (the "Your location" badge). `loadWeather()` calls `stopLocating()`, so a city picked while the location is still loading wins.
   - It refreshes when the tab comes back after 10 minutes, and when the browser comes back online.
+  - Date and time: `localNow(timezone, fallbackTime)` gives the place's current date and clock, using the IANA `timezone` from the forecast (or Open-Meteo's `time` if the browser doesn't know the zone). `tick()` runs at the start of every minute (`tickEveryMinute()`). Forecast times are already in the place's clock, so they are formatted with `placeDate()` + `timeZone: "UTC"`. The 7-day rows show the weekday and date; the hourly strip labels midnight "Wed 12 AM" (`.new-day`).
   - DOM text goes in with `textContent`, never `innerHTML`.
 - `body[data-mood]` (from the condition's `mood`) picks the page gradient (`--sky-*`).
 
