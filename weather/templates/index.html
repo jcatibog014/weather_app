@@ -1,0 +1,10 @@
+{% extends "base.html" %}
+{# A placeholder until the real page is built (stage 2 of the plan). #}
+{% block content %}
+  <h1>Weather</h1>
+  <p>The page is coming soon. The API already works:</p>
+  <ul>
+    <li><a href="{{ url_for('weather.search', q='Manila') }}">/api/search?q=Manila</a></li>
+    <li><a href="{{ url_for('weather.weather', lat=14.6042, lon=120.9822) }}">/api/weather?lat=14.6042&amp;lon=120.9822</a></li>
+  </ul>
+{% endblock %}

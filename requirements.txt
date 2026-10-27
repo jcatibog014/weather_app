@@ -1,0 +1,4 @@
+Flask>=3.1,<4
+requests>=2.32  # makes the HTTP calls to Open-Meteo
+gunicorn>=23  # the web server on Render (Linux only; locally use "flask run")
+pytest>=8
