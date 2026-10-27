@@ -3,9 +3,18 @@ from pathlib import Path
 
 import pytest
 
+from weather import client as weather_client
 from weather import create_app
 
 FIXTURES = Path(__file__).parent / "fixtures"
+
+
+@pytest.fixture(autouse=True)
+def empty_place_cache():
+    """reverse_geocode() remembers answers; start every test with an empty memory."""
+    weather_client.reverse_geocode.cache_clear()
+    yield
+    weather_client.reverse_geocode.cache_clear()
 
 
 def load_fixture(name):
@@ -31,3 +40,9 @@ def forecast_json():
 @pytest.fixture
 def search_json():
     return load_fixture("search.json")
+
+
+@pytest.fixture
+def place_json():
+    """Nominatim's answer for 14.58, 121.03 (Mandaluyong, Metro Manila)."""
+    return load_fixture("place.json")

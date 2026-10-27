@@ -1,7 +1,7 @@
 """Tests for checking the query fields."""
 import pytest
 
-from weather.validation import parse_coordinate, validate_search, validate_weather
+from weather.validation import parse_coordinate, validate_coordinates, validate_search, validate_weather
 
 
 def test_search_trims_and_squashes_spaces():
@@ -49,3 +49,13 @@ def test_weather_reports_every_bad_field():
     data, errors = validate_weather({"lat": "100", "lon": "200", "units": "kelvin"})
     assert data is None
     assert set(errors) == {"lat", "lon", "units"}
+
+
+def test_coordinates_without_units():
+    assert validate_coordinates({"lat": "14.58", "lon": "121.03"}) == ({"lat": 14.58, "lon": 121.03}, {})
+
+
+def test_bad_coordinates():
+    data, errors = validate_coordinates({"lat": "x"})
+    assert data is None
+    assert set(errors) == {"lat", "lon"}

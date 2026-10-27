@@ -39,8 +39,8 @@ def parse_coordinate(text, limit):
     return number
 
 
-def validate_weather(params):
-    """Check lat, lon and units for a forecast. Returns (data, errors)."""
+def validate_coordinates(params):
+    """Check lat and lon. Returns (data, errors)."""
     errors = {}
     lat = parse_coordinate(params.get("lat"), 90)
     if lat is None:
@@ -48,10 +48,19 @@ def validate_weather(params):
     lon = parse_coordinate(params.get("lon"), 180)
     if lon is None:
         errors["lon"] = "Longitude must be a number from -180 to 180."
+    if errors:
+        return None, errors
+    return {"lat": lat, "lon": lon}, {}
+
+
+def validate_weather(params):
+    """Check lat, lon and units for a forecast. Returns (data, errors)."""
+    data, errors = validate_coordinates(params)
+    errors = dict(errors)
     units = params.get("units") or "metric"
     if units not in UNITS:
         errors["units"] = "Units must be metric or imperial."
 
     if errors:
         return None, errors
-    return {"lat": lat, "lon": lon, "units": units}, {}
+    return {**data, "units": units}, {}

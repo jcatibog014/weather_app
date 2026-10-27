@@ -413,7 +413,6 @@ button { font: inherit; }
 .saved { display: flex; align-items: center; flex-wrap: wrap; gap: 8px; margin-top: -4px; }
 
 .chips { display: flex; flex-wrap: wrap; gap: 8px; margin: 0; padding: 0; list-style: none; }
-.chips.centered { justify-content: center; }
 
 .chip {
   display: inline-flex;
@@ -480,6 +479,8 @@ button { font: inherit; }
 .message-card h1,
 .message-card h2 { font-size: 1.4rem; color: var(--text); margin: 0; }
 .message-card .button { margin-top: 6px; }
+.welcome-status { display: flex; align-items: center; justify-content: center; gap: 10px; max-width: 34rem; }
+.welcome-status .spinner { flex: none; margin: 0; }
 
 /* While new data loads, the old weather stays on screen, a little faded. */
 #weather { transition: opacity 0.2s; }
@@ -489,6 +490,16 @@ button { font: inherit; }
 
 .current-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; }
 .current-head h1 { font-size: 1.75rem; line-height: 1.2; letter-spacing: -0.01em; }
+
+.here-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  margin-bottom: 4px;
+  color: var(--accent);
+  font-size: 0.85rem;
+  font-weight: 700;
+}
 
 .favourite { flex: none; color: var(--muted); }
 .favourite[aria-pressed="true"] { color: var(--star); }

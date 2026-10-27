@@ -7,7 +7,7 @@ import pytest
 import requests
 
 from weather import client
-from weather.client import WeatherServiceError, get_forecast, get_json, search_cities
+from weather.client import WeatherServiceError, get_forecast, get_json, reverse_geocode, search_cities
 
 
 class FakeResponse:
@@ -26,9 +26,9 @@ class FakeResponse:
 def fake_get(response=None, error=None, calls=None):
     """A stand-in for requests.get that records its arguments."""
 
-    def get(url, params=None, timeout=None):
+    def get(url, params=None, headers=None, timeout=None):
         if calls is not None:
-            calls.append({"url": url, "params": params, "timeout": timeout})
+            calls.append({"url": url, "params": params, "headers": headers, "timeout": timeout})
         if error:
             raise error
         return response
@@ -98,3 +98,30 @@ def test_imperial_forecast_asks_for_fahrenheit_and_mph(monkeypatch):
     params = calls[0]["params"]
     assert params["temperature_unit"] == "fahrenheit"
     assert params["wind_speed_unit"] == "mph"
+
+
+def test_reverse_geocode_says_who_we_are(monkeypatch):
+    calls = []
+    monkeypatch.setattr(client.requests, "get", fake_get(FakeResponse(data={}), calls=calls))
+    reverse_geocode(14.58, 121.03)
+    assert calls[0]["url"] == client.REVERSE_GEOCODING_URL
+    assert (calls[0]["params"]["lat"], calls[0]["params"]["lon"]) == (14.58, 121.03)
+    # Nominatim blocks apps that don't name themselves.
+    assert "weather_app" in calls[0]["headers"]["User-Agent"]
+
+
+def test_reverse_geocode_remembers_answers(monkeypatch):
+    calls = []
+    monkeypatch.setattr(client.requests, "get", fake_get(FakeResponse(data={"name": "X"}), calls=calls))
+    reverse_geocode(14.58, 121.03)
+    reverse_geocode(14.58, 121.03)
+    assert len(calls) == 1
+
+
+def test_reverse_geocode_does_not_remember_errors(monkeypatch):
+    calls = []
+    monkeypatch.setattr(client.requests, "get", fake_get(error=requests.Timeout(), calls=calls))
+    for _ in range(2):
+        with pytest.raises(WeatherServiceError):
+            reverse_geocode(14.58, 121.03)
+    assert len(calls) == 2
