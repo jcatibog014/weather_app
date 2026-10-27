@@ -25,6 +25,7 @@ def test_parse_cities(search_json):
     assert len(cities) == 5
     assert cities[0] == {
         "name": "Manila",
+        "region": "National Capital Region, Philippines",
         "label": "Manila, National Capital Region, Philippines",
         "country_code": "PH",
         "lat": 14.6042,
@@ -39,7 +40,9 @@ def test_no_results_gives_an_empty_list():
 
 def test_city_label_skips_missing_parts():
     raw = {"results": [{"name": "Somewhere", "country": "Nowhere", "latitude": 1, "longitude": 2}]}
-    assert parse_cities(raw)[0]["label"] == "Somewhere, Nowhere"
+    city = parse_cities(raw)[0]
+    assert city["label"] == "Somewhere, Nowhere"
+    assert city["region"] == "Nowhere"
 
 
 def test_current_weather(forecast_json):

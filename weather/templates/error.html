@@ -1,7 +1,10 @@
 {% extends "base.html" %}
 {% block title %}{{ code }} · Weather{% endblock %}
 {% block content %}
-  <h1>{{ code }}</h1>
-  <p>{{ message }}</p>
-  <p><a href="{{ url_for('weather.index') }}">Back to the weather</a></p>
+  <section class="card message-card">
+    {{ icon("wx-fog", class="wx-icon wx-big", size=96) }}
+    <h1>{{ code }}</h1>
+    <p>{{ message }}</p>
+    <p><a class="button" href="{{ url_for('weather.index') }}">Back to the weather</a></p>
+  </section>
 {% endblock %}

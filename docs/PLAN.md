@@ -103,11 +103,11 @@ Next 24 hours  → horizontal scroll strip (time, icon, temp, rain %)
 
 **Accessibility:** the same rules as Swap Meter (4.5:1 text, 3:1 borders, 44px touch targets, an `aria-label` on every icon button). A single `aria-live` region announces "Loaded weather for Manila" or the error message.
 
-## 5. Build order (one PR per stage)
-1. **Backend + tests:** setup, client, parsing, validation, API routes, pytest with fixtures.
-2. **Core UI:** search, current card, hourly, 7-day, all loading/error/empty states.
-3. **Extras:** location, unit toggle, recent and favourites, theme, weather-mood backgrounds.
-4. **Polish and ship:** logo/icons, `docs/UI_UX_PLAN.md`, README with screenshots, `render.yaml` (`gunicorn "weather:create_app()"`). The user does the Render deploy steps.
+## 5. Build order
+1. ✅ **Backend + tests** (PR #1): setup, client, parsing, validation, API routes, pytest with fixtures.
+2. ✅ **Core UI** (stages 2–4 were merged into one PR at the owner's request): search, current card, hourly, 7-day, all loading/error/empty states.
+3. ✅ **Extras:** location, unit toggle, recent and favourites, theme, weather-mood backgrounds.
+4. ✅ **Polish and ship:** logo/icons, README with screenshots, `render.yaml` (`gunicorn "weather:create_app()"`). The owner does the Render deploy steps.
 
 Optional later: a small in-memory 10-minute cache in `client.py`, and an air-quality card (Open-Meteo air-quality API).
 

@@ -24,9 +24,8 @@ def compass(degrees):
     return COMPASS_POINTS[int((degrees % 360) / 45 + 0.5) % 8]
 
 
-def city_label(city):
-    """'Manila, National Capital Region, Philippines', skipping empty parts."""
-    parts = [city["name"], city.get("admin1"), city.get("country")]
+def join_parts(*parts):
+    """Join the parts that aren't empty: ("Manila", None, "PH") -> "Manila, PH"."""
     return ", ".join(part for part in parts if part)
 
 
@@ -36,7 +35,8 @@ def parse_cities(raw):
     return [
         {
             "name": city["name"],
-            "label": city_label(city),
+            "region": join_parts(city.get("admin1"), city.get("country")),  # "National Capital Region, Philippines"
+            "label": join_parts(city["name"], city.get("admin1"), city.get("country")),
             "country_code": city.get("country_code", ""),
             "lat": city["latitude"],
             "lon": city["longitude"],

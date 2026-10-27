@@ -1,10 +1,185 @@
 {% extends "base.html" %}
-{# A placeholder until the real page is built (stage 2 of the plan). #}
+
+{% block controls %}
+  <div class="controls">
+    <button type="button" class="icon-button" id="locate" aria-label="Use my location" title="Use my location" hidden>
+      {{ icon("i-locate") }}
+    </button>
+    <div class="segmented" role="group" aria-label="Units">
+      <button type="button" data-units="metric" aria-pressed="true" title="Celsius, km/h, mm">°C</button>
+      <button type="button" data-units="imperial" aria-pressed="false" title="Fahrenheit, mph, inches">°F</button>
+    </div>
+    <button type="button" class="icon-button" id="theme-toggle" aria-label="Switch to dark mode" hidden>
+      {{ icon("i-moon", class="ui-icon icon-moon") }}{{ icon("i-sun", class="ui-icon icon-sun") }}
+    </button>
+  </div>
+{% endblock %}
+
 {% block content %}
-  <h1>Weather</h1>
-  <p>The page is coming soon. The API already works:</p>
-  <ul>
-    <li><a href="{{ url_for('weather.search', q='Manila') }}">/api/search?q=Manila</a></li>
-    <li><a href="{{ url_for('weather.weather', lat=14.6042, lon=120.9822) }}">/api/weather?lat=14.6042&amp;lon=120.9822</a></li>
-  </ul>
+  {# The search box follows the ARIA "combobox" pattern: the list of places
+     belongs to the box, and the arrow keys move through it. #}
+  <form class="search" id="search-form" role="search" action="#">
+    <label class="visually-hidden" for="search-input">Search for a city</label>
+    <div class="search-box">
+      {{ icon("i-search", class="ui-icon search-icon") }}
+      <input id="search-input" type="text" role="combobox" placeholder="Search for a city"
+             autocomplete="off" spellcheck="false" maxlength="80" enterkeyhint="search"
+             aria-autocomplete="list" aria-expanded="false" aria-controls="search-results">
+      <div class="search-end">
+        <span class="spinner" id="search-spinner" hidden></span>
+        <button type="button" class="icon-button plain" id="search-clear" aria-label="Clear search" hidden>
+          {{ icon("i-close", size=18) }}
+        </button>
+      </div>
+    </div>
+    <ul class="results" id="search-results" role="listbox" aria-label="Places" hidden></ul>
+    {# role=status: screen readers read "No places called …" and search errors out loud. #}
+    <p class="search-message" id="search-message" role="status"></p>
+  </form>
+
+  <nav class="saved" id="saved" aria-label="Saved places" hidden>
+    <ul class="chips" id="saved-list"></ul>
+    <button type="button" class="text-button small" id="clear-recent">Clear recent</button>
+  </nav>
+
+  <div class="banner" id="offline-banner" hidden>You're offline. The weather will update when you're back online.</div>
+
+  <div class="notice" id="notice" hidden>
+    <p id="notice-text"></p>
+    <button type="button" class="text-button" id="notice-action" hidden></button>
+    <button type="button" class="icon-button plain" id="notice-close" aria-label="Close message">{{ icon("i-close", size=18) }}</button>
+  </div>
+
+  <noscript>
+    <section class="card message-card">
+      <h1>Please turn on JavaScript</h1>
+      <p>This app loads the weather with JavaScript.</p>
+    </section>
+  </noscript>
+
+  {# ---------- State: first visit ---------- #}
+  <section class="card message-card" id="welcome" hidden>
+    {{ icon("wx-partly-cloudy", class="wx-icon wx-big", size=96) }}
+    <h1>Check the weather anywhere</h1>
+    <p>Search for a city above, or use your location.</p>
+    <p class="muted">Or try one of these:</p>
+    <ul class="chips centered">
+      <li><button type="button" class="chip" data-name="Manila" data-region="National Capital Region, Philippines" data-lat="14.6042" data-lon="120.9822">Manila</button></li>
+      <li><button type="button" class="chip" data-name="Tokyo" data-region="Tokyo, Japan" data-lat="35.6895" data-lon="139.6917">Tokyo</button></li>
+      <li><button type="button" class="chip" data-name="London" data-region="England, United Kingdom" data-lat="51.5085" data-lon="-0.1257">London</button></li>
+      <li><button type="button" class="chip" data-name="New York" data-region="New York, United States" data-lat="40.7143" data-lon="-74.006">New York</button></li>
+    </ul>
+  </section>
+
+  {# ---------- State: loading (grey blocks shaped like the real cards) ---------- #}
+  <div class="stack skeleton" id="skeleton" aria-hidden="true" hidden>
+    <div class="card">
+      <div class="sk sk-title"></div>
+      <div class="sk sk-line" style="width: 40%"></div>
+      <div class="sk-row"><div class="sk sk-circle"></div><div class="sk sk-temp"></div></div>
+      <div class="details">
+        {% for _ in range(6) %}<div class="sk sk-box"></div>{% endfor %}
+      </div>
+    </div>
+    <div class="card">
+      <div class="sk sk-line" style="width: 30%"></div>
+      <div class="sk-row">{% for _ in range(7) %}<div class="sk sk-hour"></div>{% endfor %}</div>
+    </div>
+    <div class="card">
+      <div class="sk sk-line" style="width: 30%"></div>
+      {% for _ in range(4) %}<div class="sk sk-line"></div>{% endfor %}
+    </div>
+  </div>
+
+  {# ---------- State: something went wrong ---------- #}
+  <section class="card message-card" id="error-card" hidden>
+    {{ icon("wx-thunder", class="wx-icon wx-big", size=96) }}
+    <h2 id="error-title">Couldn't load the weather</h2>
+    <p id="error-message"></p>
+    <button type="button" class="button" id="retry">{{ icon("i-refresh", size=18) }} Try again</button>
+  </section>
+
+  {# ---------- State: the weather ---------- #}
+  <div class="stack" id="weather" hidden>
+    <section class="card current" aria-labelledby="place-name">
+      <div class="current-head">
+        <div>
+          <h1 id="place-name"></h1>
+          <p class="muted" id="place-region"></p>
+          <p class="muted" id="local-time"></p>
+        </div>
+        <button type="button" class="icon-button favourite" id="favourite" aria-label="Favourite" aria-pressed="false">
+          {{ icon("i-star", size=22) }}
+        </button>
+      </div>
+
+      <div class="current-main">
+        <svg class="wx-icon wx-big" id="current-icon" width="96" height="96" aria-hidden="true" focusable="false"><use></use></svg>
+        <p class="current-temp" id="current-temp"></p>
+        <div>
+          <p class="current-label" id="current-label"></p>
+          <p class="muted" id="current-feels"></p>
+          <p class="muted" id="current-range"></p>
+        </div>
+      </div>
+
+      <dl class="details">
+        <div class="detail"><dt>Humidity</dt><dd id="humidity"></dd></div>
+        <div class="detail"><dt>Wind</dt><dd>{{ icon("i-arrow", class="ui-icon wind-arrow", size=18) }}<span id="wind"></span></dd></div>
+        <div class="detail"><dt>Rain chance today</dt><dd id="rain"></dd></div>
+        <div class="detail"><dt>UV index</dt><dd id="uv"></dd></div>
+        <div class="detail"><dt>Sunrise</dt><dd id="sunrise"></dd></div>
+        <div class="detail"><dt>Sunset</dt><dd id="sunset"></dd></div>
+      </dl>
+
+      <div class="updated">
+        <p id="updated"></p>
+        <button type="button" class="text-button" id="refresh">{{ icon("i-refresh", size=18) }} Refresh</button>
+      </div>
+    </section>
+
+    <section class="card" aria-labelledby="hourly-title">
+      <h2 id="hourly-title">Next 24 hours</h2>
+      {# tabindex: keyboard users can focus the strip and scroll it with the arrow keys. #}
+      <ol class="hourly" id="hourly" tabindex="0" aria-labelledby="hourly-title"></ol>
+    </section>
+
+    <section class="card" aria-labelledby="daily-title">
+      <h2 id="daily-title">Next 7 days</h2>
+      <ol class="daily" id="daily"></ol>
+    </section>
+  </div>
+
+  {# One place where screen readers hear what changed ("Manila: 31°, Sunny."). #}
+  <p class="visually-hidden" id="announcer" aria-live="polite"></p>
+
+  {# Copied by app.js for each hour and day. Text goes in with textContent. #}
+  <template id="hour-template">
+    <li class="hour">
+      <span class="hour-time"></span>
+      <svg class="wx-icon" width="36" height="36" aria-hidden="true" focusable="false"><use></use></svg>
+      <span class="visually-hidden hour-label"></span>
+      <span class="hour-temp"></span>
+      <span class="rain-chance">{{ icon("i-drop", class="ui-icon drop", size=12) }}<span class="visually-hidden">Rain chance </span><span class="hour-rain"></span></span>
+    </li>
+  </template>
+  <template id="day-template">
+    <li class="day">
+      <span class="day-name"></span>
+      <svg class="wx-icon" width="36" height="36" aria-hidden="true" focusable="false"><use></use></svg>
+      <span class="visually-hidden day-label"></span>
+      <span class="rain-chance">{{ icon("i-drop", class="ui-icon drop", size=12) }}<span class="visually-hidden">Rain chance </span><span class="day-rain"></span></span>
+      <span class="day-low"><span class="visually-hidden">Low </span><span class="value"></span></span>
+      <span class="range" aria-hidden="true"><span class="range-fill"></span></span>
+      <span class="day-high"><span class="visually-hidden">High </span><span class="value"></span></span>
+    </li>
+  </template>
+{% endblock %}
+
+{% block footer_extra %}
+  <p class="kbd-hint">Tip: press <kbd>/</kbd> to search.</p>
+{% endblock %}
+
+{% block scripts %}
+  <script src="{{ url_for('static', filename='app.js') }}"></script>
 {% endblock %}

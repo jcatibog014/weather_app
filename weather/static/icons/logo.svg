@@ -1,0 +1,9 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">
+  <!-- The app icon: the "partly cloudy" drawing from _icons.html on a blue tile. -->
+  <rect width="64" height="64" rx="14" fill="#1d5fa8"/>
+  <g transform="translate(3 3) scale(.6)" fill="#fbbf24" stroke="#fbbf24">
+    <circle cx="32" cy="32" r="12"/>
+    <path d="M32 6v6M32 52v6M6 32h6M52 32h6M13.6 13.6l4.2 4.2M46.2 46.2l4.2 4.2M13.6 50.4l4.2-4.2M46.2 17.8l4.2-4.2" fill="none" stroke-width="4.5" stroke-linecap="round"/>
+  </g>
+  <path transform="translate(5 8)" fill="#ffffff" d="M18 46h28a10 10 0 0 0 .6-19.98 14 14 0 0 0-26.8 4.2A8 8 0 0 0 18 46z"/>
+</svg>
