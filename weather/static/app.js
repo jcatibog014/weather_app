@@ -176,22 +176,30 @@
   // ---------- Talking to our API ----------
 
   class ApiError extends Error {
-    constructor(message, kind) {
+    constructor(message, kind, body) {
       super(message);
       this.kind = kind;
+      this.body = body || {}; // the whole error answer, e.g. Plan B's instructions
     }
   }
 
   // GET a URL and return its JSON, or throw an ApiError with a message for people.
   // `signal` lets the caller cancel the request (a newer search replaces an older one).
-  async function fetchJSON(url, signal, timeoutMs) {
+  // With `postBody`, it POSTs that object as JSON instead.
+  async function fetchJSON(url, signal, timeoutMs, postBody) {
     const stopAfter = AbortSignal.timeout(timeoutMs || REQUEST_TIMEOUT_MS);
+    const options = {
+      signal: AbortSignal.any([signal, stopAfter]),
+      headers: { Accept: "application/json" },
+    };
+    if (postBody) {
+      options.method = "POST";
+      options.headers["Content-Type"] = "application/json";
+      options.body = JSON.stringify(postBody);
+    }
     let response;
     try {
-      response = await fetch(url, {
-        signal: AbortSignal.any([signal, stopAfter]),
-        headers: { Accept: "application/json" },
-      });
+      response = await fetch(url, options);
     } catch (error) {
       if (signal.aborted) throw error; // cancelled on purpose; the caller ignores it
       if (stopAfter.aborted) {
@@ -214,10 +222,34 @@
     if (!response.ok) {
       // Our API sends {error, kind} for service problems and {errors: {field: message}} for bad input.
       const fieldErrors = Object.values(body.errors || {});
-      const message = body.error || fieldErrors[0] || "Something went wrong. Please try again.";
-      throw new ApiError(message, body.kind || "http_" + response.status);
+      // (Open-Meteo itself sends {"error": true, "reason": ...}, so check it's text.)
+      const ownMessage = typeof body.error === "string" ? body.error : "";
+      const message = ownMessage || fieldErrors[0] || "Something went wrong. Please try again.";
+      throw new ApiError(message, body.kind || "http_" + response.status, body);
     }
     return body;
+  }
+
+  // Plan A: our server asks Open-Meteo (/api/weather).
+  // Plan B: Open-Meteo says our server asked too often ("busy"). Open-Meteo's free
+  // limit is per IP address, and our free host shares its address with many apps.
+  // So this browser asks Open-Meteo itself (its own address, its own limit) and
+  // sends the answer to /api/forecast, which reads it with the same Python code.
+  async function getWeather(params, signal) {
+    try {
+      return await fetchJSON("/api/weather?" + params, signal);
+    } catch (error) {
+      const planB = error instanceof ApiError && error.kind === "busy" && error.body.plan_b;
+      if (!planB) throw error;
+      let raw;
+      try {
+        raw = await fetchJSON(planB.url + "?" + new URLSearchParams(planB.params), signal);
+      } catch (planBError) {
+        if (signal.aborted) throw planBError;
+        throw error; // Plan B failed too: show the first, friendlier message
+      }
+      return fetchJSON("/api/forecast", signal, null, raw);
+    }
   }
 
   // ---------- Words and numbers ----------
@@ -380,7 +412,7 @@
 
     const params = new URLSearchParams({ lat: place.lat, lon: place.lon, units: state.units });
     try {
-      const data = await fetchJSON("/api/weather?" + params, request.signal);
+      const data = await getWeather(params, request.signal);
       state.shown = { place: place, data: data, units: state.units, loadedAt: Date.now() };
       renderWeather();
       showView("weather");

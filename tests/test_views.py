@@ -140,6 +140,46 @@ def test_open_meteo_status_is_shown_and_logged(client, monkeypatch, caplog):
     assert "busy (429) Daily API request limit exceeded." in caplog.text
 
 
+def test_busy_answer_tells_the_browser_plan_b(client, monkeypatch):
+    monkeypatch.setattr(weather_client, "get_forecast", raise_error("busy", 429))
+    body = client.get("/api/weather?lat=14.6&lon=121&units=imperial").get_json()
+    assert body["plan_b"]["url"] == weather_client.FORECAST_URL
+    assert body["plan_b"]["params"] == weather_client.forecast_params(14.6, 121.0, "imperial")
+
+
+def test_other_errors_have_no_plan_b(client, monkeypatch):
+    monkeypatch.setattr(weather_client, "get_forecast", raise_error("upstream", 500))
+    assert "plan_b" not in client.get("/api/weather?lat=14.6&lon=121").get_json()
+
+
+def test_forecast_from_the_browser_reads_like_api_weather(client, monkeypatch, forecast_json):
+    monkeypatch.setattr(weather_client, "get_forecast", lambda *args: forecast_json)
+    from_server = client.get("/api/weather?lat=14.6&lon=121").get_json()
+    response = client.post("/api/forecast", json=forecast_json)
+    assert response.status_code == 200
+    assert response.get_json() == from_server
+
+
+@pytest.mark.parametrize(
+    "kwargs",
+    [
+        {"data": "not json", "content_type": "application/json"},
+        {"json": [1, 2, 3]},
+        {"json": {"error": True, "reason": "Daily API request limit exceeded."}},
+    ],
+)
+def test_forecast_from_the_browser_must_be_a_forecast(client, kwargs):
+    response = client.post("/api/forecast", **kwargs)
+    assert response.status_code == 400
+    assert response.get_json()["kind"] == "bad_data"
+
+
+def test_forecast_from_the_browser_has_a_size_limit(client):
+    response = client.post("/api/forecast", json={"padding": "x" * 300_000})
+    assert response.status_code == 413
+    assert response.get_json()["kind"] == "too_large"
+
+
 def test_search_service_error(client, monkeypatch):
     monkeypatch.setattr(weather_client, "search_cities", raise_error("timeout"))
     response = client.get("/api/search?q=Manila")

@@ -14,7 +14,7 @@ Python 3.13 is at `%LOCALAPPDATA%\Programs\Python\Python313\python.exe`. Use the
 
 ## Architecture
 
-The browser calls only our own `/api/...` routes; Flask calls Open-Meteo.
+The browser calls only our own `/api/...` routes; Flask calls Open-Meteo. The one exception is Plan B: Open-Meteo's free limit is per IP address, and Render's free plan shares its outgoing address with other apps, so Open-Meteo can answer 429 to our server. Then `/api/weather` answers 503 `busy` with `plan_b: {url, params}` (from `client.forecast_params()`), the browser fetches that from Open-Meteo itself (CORS is allowed), and POSTs the raw answer to `/api/forecast`, which runs the same `parse_forecast()`.
 
 - `weather/__init__.py` holds `create_app(test_config)` and the 404 handler (JSON for `/api/...`, `error.html` for pages).
 - `weather/client.py` is the only module that does network I/O (`requests.get` with `TIMEOUT`). `get_json()` turns every failure into `WeatherServiceError(kind)`, where `kind` is `timeout`, `connection`, `busy` (status 429), `upstream` (any other status ≥ 400) or `bad_data` (not a JSON object). For an error status it also keeps `status` and Open-Meteo's `reason`. `search_cities(name)` calls the geocoding API. `reverse_geocode(lat, lon)` calls Nominatim with the `USER_AGENT` header (Nominatim's usage policy requires one) and is wrapped in `lru_cache`; callers round to 2 decimals, and `tests/conftest.py` clears the cache for each test. `get_forecast(lat, lon, units)` calls the forecast API with `CURRENT_FIELDS`/`HOURLY_FIELDS`/`DAILY_FIELDS`, and adds `IMPERIAL_PARAMS` for `units="imperial"` (Open-Meteo does the unit conversion).
@@ -25,7 +25,8 @@ The browser calls only our own `/api/...` routes; Flask calls Open-Meteo.
   - `GET /` renders `index.html`.
   - `GET /api/search?q=` returns `{query, results}`. An empty result is still 200.
   - `GET /api/place?lat=&lon=` returns `{name, region}`, or 404 `{error, kind: "not_found"}` when there is no town there.
-  - `GET /api/weather?lat=&lon=&units=` returns the parsed forecast.
+  - `GET /api/weather?lat=&lon=&units=` returns the parsed forecast. `client.get_forecast()` keeps answers for `CACHE_SECONDS` (10 min) in `FORECAST_CACHE`, keyed by lat/lon rounded to 2 decimals and units; errors aren't kept. `tests/conftest.py` clears it for each test.
+  - `POST /api/forecast` (Plan B) takes Open-Meteo's raw forecast JSON and returns the same as `/api/weather`; not JSON / not a forecast → 400 `bad_data`. Nothing from it is cached. `MAX_CONTENT_LENGTH` is 256 KB (413 `too_large`, JSON).
   - Bad input → 400 `{errors}`. Open-Meteo problems → `{error, kind}` with 504 (timeout), 503 (`busy`: Open-Meteo's 429) or 502 (everything else), from `SERVICE_ERRORS`. When Open-Meteo sent an error status, the body also has `upstream_status`, and the log line has the status and Open-Meteo's `reason`. Parse errors (`PARSE_ERRORS`) count as `bad_data`.
 - Tests: `tests/fixtures/` holds real Open-Meteo answers (Manila, saved 2026-10-27 15:30 local time). `test_client.py` fakes `requests.get`; `test_views.py` fakes `client.search_cities`/`client.get_forecast`.
 
@@ -34,7 +35,8 @@ The browser calls only our own `/api/...` routes; Flask calls Open-Meteo.
 - `templates/index.html` holds every state as markup. `app.js` shows one view at a time with `showView()`: `welcome`, `loading` (`#skeleton`), `error` (`#error-card`) or `weather`. Hours and days are cloned from `<template id="hour-template">` / `"day-template"`.
 - `templates/_icons.html` is an SVG sprite. `wx-*` symbols are the weather drawings, one per icon name from `conditions.py` (`test_every_weather_icon_has_a_drawing` checks this); `i-*` are interface icons. A new icon group needs a symbol there. The `icon(name)` macro draws one. `static/icons/logo.svg` (favicon) copies the partly-cloudy drawing.
 - `static/app.js`:
-  - `fetchJSON(url, signal)` is the one place that calls `fetch`. It adds a 15 s timeout (`AbortSignal.timeout`) and turns every failure into an `ApiError` with a message for people.
+  - `fetchJSON(url, signal, timeoutMs, postBody)` is the one place that calls `fetch` (`postBody` makes it a JSON POST). It adds a 15 s timeout (`AbortSignal.timeout`) and turns every failure into an `ApiError` with a message for people and the error `body`.
+  - `getWeather(params, signal)` tries `/api/weather`, and on `busy` with `plan_b` does Plan B. If Plan B fails too, it throws the first (`busy`) error.
   - `loadWeather(place)` aborts the previous request, so only the newest one counts. For the same place (Refresh, °C/°F) it keeps the old weather faded (`.is-refreshing`) and, on failure, shows a `#notice` instead of the error card.
   - Search is an ARIA combobox: a 300 ms debounce, aborts older searches, and supports arrow keys, Enter (the first match) and Esc.
   - localStorage keys (each read/write wrapped in try/catch): `theme`, `weather.units`, `weather.recent` (5), `weather.favourites` (8), `weather.lastPlace`.

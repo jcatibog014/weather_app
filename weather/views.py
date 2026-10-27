@@ -1,6 +1,6 @@
 """The web page and the JSON API that app.js calls.
 
-The browser never talks to Open-Meteo directly. It asks our own API, and
+The browser usually doesn't talk to Open-Meteo. It asks our own API, and
 we ask Open-Meteo. That way we check the input, choose the error messages
 and send back only the fields the page needs.
 
@@ -12,6 +12,9 @@ Status codes the API uses:
   504 Gateway Timeout - Open-Meteo didn't answer in time
 When Open-Meteo answered with an error status, the JSON also has
 "upstream_status" (its code), so you can see it in DevTools.
+
+The one time the browser does ask Open-Meteo is Plan B (see weather() and
+forecast_from_browser() below).
 """
 from flask import Blueprint, current_app, render_template, request
 
@@ -92,7 +95,30 @@ def weather():
     try:
         forecast = parse_forecast(client.get_forecast(data["lat"], data["lon"], data["units"]))
     except client.WeatherServiceError as error:
-        return service_error(error.kind, error)
+        body, status = service_error(error.kind, error)
+        if error.kind == "busy":
+            # Plan B: Open-Meteo is refusing our server's address, but the visitor's
+            # browser has its own. Tell it exactly what to ask Open-Meteo; it then
+            # POSTs the answer to /api/forecast, and we read it as usual.
+            params = client.forecast_params(data["lat"], data["lon"], data["units"])
+            body["plan_b"] = {"url": client.FORECAST_URL, "params": params}
+        return body, status
     except PARSE_ERRORS:
         return service_error("bad_data")
     return forecast
+
+
+@bp.post("/api/forecast")
+def forecast_from_browser():
+    """Plan B: read an Open-Meteo forecast that the browser fetched itself.
+
+    It gives back the same JSON as /api/weather. Nothing is saved, so a wrong
+    body can only change the answer for the visitor who sent it.
+    """
+    raw = request.get_json(silent=True)  # None when the body isn't JSON
+    if not isinstance(raw, dict):
+        return {"error": "Send the Open-Meteo forecast as a JSON object.", "kind": "bad_data"}, 400
+    try:
+        return parse_forecast(raw)
+    except PARSE_ERRORS:
+        return {"error": SERVICE_ERRORS["bad_data"][0], "kind": "bad_data"}, 400
