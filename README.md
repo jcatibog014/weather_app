@@ -107,6 +107,7 @@ When something is wrong, the API says so:
 | 400 | Your input is wrong (for example, a latitude of 95) |
 | 404 | No town at this point (for example, in the sea) |
 | 502 | Open-Meteo has a problem |
+| 503 | Open-Meteo is too busy (too many requests) |
 | 504 | Open-Meteo is too slow |
 
 ## Put it online (Render)

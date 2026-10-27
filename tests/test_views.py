@@ -12,9 +12,9 @@ from weather.client import WeatherServiceError
 from weather.conditions import WMO_CODES, condition
 
 
-def raise_error(kind):
+def raise_error(kind, status=None, reason=""):
     def fake(*args, **kwargs):
-        raise WeatherServiceError(kind)
+        raise WeatherServiceError(kind, status, reason)
 
     return fake
 
@@ -118,7 +118,8 @@ def test_weather_bad_input(client):
 
 
 @pytest.mark.parametrize(
-    "kind, status", [("timeout", 504), ("connection", 502), ("upstream", 502), ("bad_data", 502)]
+    "kind, status",
+    [("timeout", 504), ("connection", 502), ("busy", 503), ("upstream", 502), ("bad_data", 502)],
 )
 def test_weather_service_errors(client, monkeypatch, kind, status):
     monkeypatch.setattr(weather_client, "get_forecast", raise_error(kind))
@@ -127,6 +128,16 @@ def test_weather_service_errors(client, monkeypatch, kind, status):
     body = response.get_json()
     assert body["kind"] == kind
     assert "try again" in body["error"]
+    assert "upstream_status" not in body  # no status from Open-Meteo, so none in the answer
+
+
+def test_open_meteo_status_is_shown_and_logged(client, monkeypatch, caplog):
+    reason = "Daily API request limit exceeded."
+    monkeypatch.setattr(weather_client, "get_forecast", raise_error("busy", 429, reason))
+    response = client.get("/api/weather?lat=14.6&lon=121")
+    assert response.status_code == 503
+    assert response.get_json()["upstream_status"] == 429
+    assert "busy (429) Daily API request limit exceeded." in caplog.text
 
 
 def test_search_service_error(client, monkeypatch):

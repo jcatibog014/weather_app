@@ -56,12 +56,30 @@ def test_network_problems(monkeypatch, error, kind):
     assert caught.value.kind == kind
 
 
-@pytest.mark.parametrize("status", [400, 429, 500, 503])
+@pytest.mark.parametrize("status", [400, 500, 503])
 def test_error_status_is_upstream(monkeypatch, status):
     monkeypatch.setattr(client.requests, "get", fake_get(FakeResponse(status, data={"error": True})))
     with pytest.raises(WeatherServiceError) as caught:
         get_json("https://example.com", {})
     assert caught.value.kind == "upstream"
+    assert caught.value.status == status
+
+
+def test_too_many_requests_is_busy_and_keeps_the_reason(monkeypatch):
+    answer = {"error": True, "reason": "Daily API request limit exceeded. Please try again tomorrow."}
+    monkeypatch.setattr(client.requests, "get", fake_get(FakeResponse(429, data=answer)))
+    with pytest.raises(WeatherServiceError) as caught:
+        get_json("https://example.com", {})
+    assert caught.value.kind == "busy"
+    assert caught.value.status == 429
+    assert caught.value.reason.startswith("Daily API request limit")
+
+
+def test_error_page_that_is_not_json_has_no_reason(monkeypatch):
+    monkeypatch.setattr(client.requests, "get", fake_get(FakeResponse(502, text="<html>Bad Gateway</html>")))
+    with pytest.raises(WeatherServiceError) as caught:
+        get_json("https://example.com", {})
+    assert (caught.value.kind, caught.value.reason) == ("upstream", "")
 
 
 @pytest.mark.parametrize("response", [FakeResponse(text="<html>oops</html>"), FakeResponse(data=[1, 2])])
