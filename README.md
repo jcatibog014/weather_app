@@ -13,8 +13,8 @@ The weather data comes from [Open-Meteo](https://open-meteo.com/). Open-Meteo is
 2. Install the tools:
    `.venv\Scripts\python -m pip install -r requirements.txt`
 3. Start the app:
-   `.venv\Scripts\flask --app weather run --debug`
-4. Open http://127.0.0.1:5000 in your browser.
+   `.venv\Scripts\flask --app weather run --debug --port 5001`
+4. Open http://127.0.0.1:5001 in your browser.
 
 ## How to test it
 
