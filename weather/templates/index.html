@@ -57,18 +57,14 @@
     </section>
   </noscript>
 
-  {# ---------- State: first visit ---------- #}
+  {# ---------- State: first visit ----------
+     The app starts by looking for the visitor's location; this card says how
+     that is going, and stays if the location can't be used. #}
   <section class="card message-card" id="welcome" hidden>
     {{ icon("wx-partly-cloudy", class="wx-icon wx-big", size=96) }}
     <h1>Check the weather anywhere</h1>
-    <p>Search for a city above, or use your location.</p>
-    <p class="muted">Or try one of these:</p>
-    <ul class="chips centered">
-      <li><button type="button" class="chip" data-name="Manila" data-region="National Capital Region, Philippines" data-lat="14.6042" data-lon="120.9822">Manila</button></li>
-      <li><button type="button" class="chip" data-name="Tokyo" data-region="Tokyo, Japan" data-lat="35.6895" data-lon="139.6917">Tokyo</button></li>
-      <li><button type="button" class="chip" data-name="London" data-region="England, United Kingdom" data-lat="51.5085" data-lon="-0.1257">London</button></li>
-      <li><button type="button" class="chip" data-name="New York" data-region="New York, United States" data-lat="40.7143" data-lon="-74.006">New York</button></li>
-    </ul>
+    <p class="welcome-status"><span class="spinner" id="welcome-spinner" hidden></span><span id="welcome-status">Search for a city above.</span></p>
+    <button type="button" class="button" id="welcome-locate" hidden>{{ icon("i-locate", size=18) }} Use my location</button>
   </section>
 
   {# ---------- State: loading (grey blocks shaped like the real cards) ---------- #}
@@ -104,6 +100,7 @@
     <section class="card current" aria-labelledby="place-name">
       <div class="current-head">
         <div>
+          <p class="here-badge" id="here-badge" hidden>{{ icon("i-locate", size=14) }} Your location</p>
           <h1 id="place-name"></h1>
           <p class="muted" id="place-region"></p>
           <p class="muted" id="local-time"></p>

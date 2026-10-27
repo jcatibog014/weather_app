@@ -45,6 +45,27 @@ def parse_cities(raw):
     ]
 
 
+# Address fields to try, from small to big. Nominatim fills in the ones that
+# exist there: a city in one country, a "municipality" or "region" in another.
+PLACE_NAME_FIELDS = ["city", "town", "village", "municipality", "hamlet", "suburb", "county", "state_district"]
+PLACE_REGION_FIELDS = ["state", "region", "province", "state_district"]
+
+
+def parse_place(raw):
+    """Nominatim's answer -> {"name", "region"}, or None if there is no place there (e.g. the sea)."""
+    if "error" in raw:  # Nominatim's way of saying "nothing here": {"error": "Unable to geocode"}
+        return None
+    address = raw.get("address", {})
+    name = next((address[field] for field in PLACE_NAME_FIELDS if address.get(field)), None)
+    name = name or raw.get("name")
+    if not name:
+        return None
+    area = next((address[field] for field in PLACE_REGION_FIELDS if address.get(field)), None)
+    if area == name:  # e.g. a city that is also its own region
+        area = None
+    return {"name": name, "region": join_parts(area, address.get("country"))}
+
+
 def rows(table):
     """Parallel lists -> one dict per row: {"a": [1, 2]} -> [{"a": 1}, {"a": 2}]."""
     keys = list(table)

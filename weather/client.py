@@ -6,11 +6,21 @@ one WeatherServiceError with a "kind", so views.py can choose a friendly
 message and the right status code.
 
 Open-Meteo is free and needs no API key: https://open-meteo.com/en/docs
+Open-Meteo can't turn coordinates back into a place name, so for "my
+location" we ask OpenStreetMap's Nominatim instead (also free, no key):
+https://nominatim.org/release-docs/latest/api/Reverse/
 """
+from functools import lru_cache
+
 import requests
 
 GEOCODING_URL = "https://geocoding-api.open-meteo.com/v1/search"
 FORECAST_URL = "https://api.open-meteo.com/v1/forecast"
+REVERSE_GEOCODING_URL = "https://nominatim.openstreetmap.org/reverse"
+
+# Nominatim's rules: say who you are in the User-Agent, and don't ask twice for
+# the same thing (see the cache on reverse_geocode below).
+USER_AGENT = "weather_app learning project (https://github.com/jcatibog014/weather_app)"
 
 # (seconds to connect, seconds to wait for the answer). Without a timeout,
 # requests can wait forever and the page would spin forever too.
@@ -57,10 +67,10 @@ class WeatherServiceError(Exception):
         self.kind = kind
 
 
-def get_json(url, params):
+def get_json(url, params, headers=None):
     """GET a URL and return its JSON object, or raise WeatherServiceError."""
     try:
-        response = requests.get(url, params=params, timeout=TIMEOUT)
+        response = requests.get(url, params=params, headers=headers, timeout=TIMEOUT)
     except requests.Timeout as error:  # check this first: a Timeout is also a RequestException
         raise WeatherServiceError("timeout") from error
     except requests.RequestException as error:  # no internet, DNS failure, refused connection…
@@ -82,6 +92,22 @@ def search_cities(name):
     """Find up to 5 places called `name` (Open-Meteo's geocoding API)."""
     params = {"name": name, "count": 5, "language": "en", "format": "json"}
     return get_json(GEOCODING_URL, params)
+
+
+# Remembers the last 256 answers. Callers round lat/lon to 2 decimals (about
+# 1 km), so people nearby share one answer. Errors are not remembered.
+@lru_cache(maxsize=256)
+def reverse_geocode(lat, lon):
+    """The town or city at a point (OpenStreetMap's Nominatim)."""
+    params = {
+        "lat": lat,
+        "lon": lon,
+        "format": "jsonv2",
+        "zoom": 10,  # city level: "Mandaluyong", not a street address
+        "addressdetails": 1,
+        "accept-language": "en",
+    }
+    return get_json(REVERSE_GEOCODING_URL, params, headers={"User-Agent": USER_AGENT})
 
 
 def get_forecast(lat, lon, units="metric"):

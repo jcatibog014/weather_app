@@ -4,12 +4,13 @@ A weather website. Type a city. You see the weather now, the next 24 hours and t
 
 The weather data comes from [Open-Meteo](https://open-meteo.com/). Open-Meteo is free. You do not need a key.
 
-![The weather for Manila](docs/screenshots/light.png)
+![The weather where you are](docs/screenshots/light.png)
 
 ## What it can do
 
+- **Your location first.** When you open the app, it shows the weather where you are, with the name of your town (for example "Mandaluyong"). The browser asks you first.
 - **Search** for a city. Use the arrow keys and Enter, or click a place.
-- **Use my location** (📍 button). The browser asks you first.
+- Go back to your location with the 📍 button.
 - See the weather **now**: temperature, "feels like", humidity, wind, rain chance, UV, sunrise and sunset.
 - See the **next 24 hours**. Swipe or scroll the row.
 - See the **next 7 days**. The bar shows the lowest and the highest temperature.
@@ -25,17 +26,21 @@ The app always tells you what is happening.
 
 | What happens | What you see |
 |---|---|
-| First visit | A welcome card with example cities |
+| Opening the app | "Finding your location…", then the weather where you are |
 | Loading | Grey boxes in the shape of the weather cards |
 | Searching | A small spinner in the search box |
 | No city found | "No places called …" |
 | The server is slow or down | A message and a **Try again** button |
 | No internet | "You're offline" at the top |
-| Location is blocked | A message: you can still search |
+| Location is blocked | Your last city. If there is none, a message: you can still search |
 
 | Loading | Error | No city found |
 |---|---|---|
 | ![Loading](docs/screenshots/loading.png) | ![Error](docs/screenshots/error.png) | ![No results](docs/screenshots/no-results.png) |
+
+| Location is blocked |
+|---|
+| ![Location is blocked](docs/screenshots/location-blocked.png) |
 
 | Search | Dark mode | Phone |
 |---|---|---|
@@ -43,8 +48,8 @@ The app always tells you what is happening.
 
 ## How it works
 
-1. The browser (`app.js`) asks **our** server: `/api/search` or `/api/weather`.
-2. Our server (Flask) asks **Open-Meteo** with `requests`.
+1. The browser (`app.js`) asks **our** server: `/api/search`, `/api/place` or `/api/weather`.
+2. Our server (Flask) asks **Open-Meteo** (weather, city search) or **OpenStreetMap** (the name of your town) with `requests`.
 3. Our server checks the answer and makes it small and clean.
 4. The browser draws the weather.
 
@@ -60,6 +65,7 @@ The app always tells you what is happening.
 | JavaScript | The language of the browser | `fetch()`, search, loading and error states |
 | JSON | A data format | The data between the server and the browser |
 | Open-Meteo | A free weather API | The weather data and the city search |
+| OpenStreetMap (Nominatim) | A free map API | The name of the town where you are |
 | Render | A hosting platform | Putting the website online |
 | GitHub | A code platform | Saving the code, pull requests |
 
@@ -84,6 +90,7 @@ The tests do not use the internet. They use saved Open-Meteo answers in `tests/f
 | Address | What it gives you |
 |---|---|
 | `/api/search?q=Manila` | Places with this name |
+| `/api/place?lat=14.58&lon=121.03` | The name of the town at this point (`Mandaluyong`) |
 | `/api/weather?lat=14.6&lon=121` | Weather now, the next 24 hours and the next 7 days |
 | `/api/weather?lat=14.6&lon=121&units=imperial` | The same, in °F, mph and inches |
 
@@ -92,6 +99,7 @@ When something is wrong, the API says so:
 | Code | Meaning |
 |---|---|
 | 400 | Your input is wrong (for example, a latitude of 95) |
+| 404 | No town at this point (for example, in the sea) |
 | 502 | Open-Meteo has a problem |
 | 504 | Open-Meteo is too slow |
 

@@ -1,5 +1,6 @@
 // The weather page. It asks our own Flask API for data and draws it:
 //   /api/search?q=Manila            -> places for the search box
+//   /api/place?lat=..&lon=..        -> the town name for "my location"
 //   /api/weather?lat=..&lon=..      -> the weather now, the next 24 hours and 7 days
 // Much of this file is about the moments in between: loading, nothing
 // found, errors and being offline (see docs/PLAN.md for the list of states).
@@ -10,6 +11,7 @@
 
   const SEARCH_DELAY_MS = 300; // wait for a pause in typing, so we don't search on every key
   const REQUEST_TIMEOUT_MS = 15000; // a bit longer than the server's own wait for Open-Meteo
+  const PLACE_TIMEOUT_MS = 6000; // a town name is nice to have; don't hold the weather back for long
   const STALE_AFTER_MS = 10 * 60 * 1000; // refresh when the visitor comes back after 10 minutes
   const MAX_RECENT = 5;
   const MAX_FAVOURITES = 8;
@@ -64,6 +66,10 @@
     searchClear: byId("search-clear"),
     searchMessage: byId("search-message"),
     locate: byId("locate"),
+    welcomeStatus: byId("welcome-status"),
+    welcomeSpinner: byId("welcome-spinner"),
+    welcomeLocate: byId("welcome-locate"),
+    hereBadge: byId("here-badge"),
     unitButtons: document.querySelectorAll("[data-units]"),
     saved: byId("saved"),
     savedList: byId("saved-list"),
@@ -111,9 +117,13 @@
 
   const state = {
     units: "metric",
-    place: null, // the place we are showing or loading: {name, region, lat, lon, isMyLocation}
+    // The place we are showing or loading: {name, region, lat, lon}, plus
+    // isMyLocation for the visitor's own location, and unnamed when we
+    // couldn't find its town name.
+    place: null,
     shown: null, // what is on screen: {place, data, units, loadedAt}
     weatherRequest: null, // AbortController of the forecast request in flight
+    locateRequest: null, // AbortController while we look for the visitor's location
     searchRequest: null,
     searchTimer: 0,
     results: [], // places in the search list
@@ -172,8 +182,8 @@
 
   // GET a URL and return its JSON, or throw an ApiError with a message for people.
   // `signal` lets the caller cancel the request (a newer search replaces an older one).
-  async function fetchJSON(url, signal) {
-    const stopAfter = AbortSignal.timeout(REQUEST_TIMEOUT_MS);
+  async function fetchJSON(url, signal, timeoutMs) {
+    const stopAfter = AbortSignal.timeout(timeoutMs || REQUEST_TIMEOUT_MS);
     let response;
     try {
       response = await fetch(url, {
@@ -224,11 +234,6 @@
     if (uv < 8) return "High";
     if (uv < 11) return "Very high";
     return "Extreme";
-  }
-
-  function coordinates(lat, lon) {
-    return Math.abs(lat).toFixed(2) + "° " + (lat >= 0 ? "N" : "S") + ", " +
-      Math.abs(lon).toFixed(2) + "° " + (lon >= 0 ? "E" : "W");
   }
 
   // Open-Meteo's times are already in the place's own clock, like
@@ -340,6 +345,7 @@
   // ---------- Loading the weather ----------
 
   async function loadWeather(place) {
+    stopLocating(); // the visitor picked a place, so a slow location answer mustn't replace it
     if (state.weatherRequest) state.weatherRequest.abort(); // only the newest request counts
     const request = new AbortController();
     state.weatherRequest = request;
@@ -368,7 +374,7 @@
       showView("weather");
       announce(place.name + ": " + degrees(data.current.temperature) + ", " + data.current.condition.label + ".");
       save("weather.lastPlace", place);
-      if (!place.isMyLocation) addRecent(place);
+      if (!place.unnamed) addRecent(place);
     } catch (error) {
       if (request.signal.aborted) return; // a newer request took over and shows its own result
       if (refreshing) {
@@ -414,6 +420,7 @@
     document.body.dataset.mood = now.condition.mood;
     document.title = place.name + " · Weather";
 
+    el.hereBadge.hidden = !place.isMyLocation;
     el.placeName.textContent = place.name;
     el.placeRegion.textContent = place.region || "";
     el.placeRegion.hidden = !place.region;
@@ -510,7 +517,7 @@
 
   function renderFavourite() {
     const place = state.shown.place;
-    el.favourite.hidden = Boolean(place.isMyLocation); // "Your location" moves with you
+    el.favourite.hidden = Boolean(place.unnamed); // a star for "Your location" would mean nothing later
     const on = isFavourite(place);
     el.favourite.setAttribute("aria-pressed", String(on));
     el.favourite.title = on ? "Remove from favourites" : "Add to favourites";
@@ -750,40 +757,122 @@
 
   // ---------- My location ----------
 
-  function locationFailed(error) {
-    const message = error.code === error.PERMISSION_DENIED
-      ? "Location is blocked. You can still search for a city, or allow location for this site in your browser."
-      : "We couldn't find your location. Please search for a city instead.";
-    showNotice(message);
+  const LOCATION_BLOCKED = "Location is blocked, so we can't show your weather. Search for a city above, or allow location for this site in your browser.";
+  const LOCATION_NOT_FOUND = "We couldn't find your location. Search for a city above, or try again.";
+
+  // The welcome card's line: what is happening with the location.
+  function setWelcome(text, busy, canRetry) {
+    el.welcomeStatus.textContent = text;
+    el.welcomeSpinner.hidden = !busy;
+    el.welcomeLocate.hidden = busy || !canRetry || !("geolocation" in navigator);
+  }
+
+  function resetLocateButton() {
+    el.locate.classList.remove("is-busy");
+    el.locate.disabled = false;
+  }
+
+  // Forget a location search that is still running (the visitor chose another place).
+  function stopLocating() {
+    if (state.locateRequest) state.locateRequest.abort();
+    state.locateRequest = null;
+    resetLocateButton();
+  }
+
+  // Open-Meteo can't turn coordinates into a name, so our server asks
+  // OpenStreetMap. Without a name, the weather still works: "Your location".
+  async function nameOf(lat, lon, signal) {
+    const place = { name: "Your location", region: "", lat: lat, lon: lon, isMyLocation: true, unnamed: true };
+    try {
+      const found = await fetchJSON("/api/place?" + new URLSearchParams({ lat: lat, lon: lon }), signal, PLACE_TIMEOUT_MS);
+      return Object.assign(place, { name: found.name, region: found.region, unnamed: false });
+    } catch (error) {
+      return place;
+    }
+  }
+
+  // auto: true when the app does this by itself on start. Then a failure
+  // quietly falls back to the last place seen, or the welcome card.
+  function locateMe(auto) {
+    stopLocating();
+    const request = new AbortController();
+    state.locateRequest = request;
+    el.locate.classList.add("is-busy");
+    el.locate.disabled = true;
+    hideNotice();
+    if (!views.welcome.hidden) setWelcome("Finding your location… Allow location if your browser asks.", true);
+    announce("Finding your location…");
+
+    navigator.geolocation.getCurrentPosition(
+      async function (position) {
+        if (request.signal.aborted) return; // the visitor picked a city in the meantime
+        // 4 decimals is about 10 m: close enough for weather, and kinder to privacy in the URL.
+        const lat = Number(position.coords.latitude.toFixed(4));
+        const lon = Number(position.coords.longitude.toFixed(4));
+        showView("loading");
+        const place = await nameOf(lat, lon, request.signal);
+        if (request.signal.aborted) return;
+        state.locateRequest = null;
+        resetLocateButton();
+        loadWeather(place);
+      },
+      function (error) {
+        if (request.signal.aborted) return;
+        state.locateRequest = null;
+        resetLocateButton();
+        const blocked = error.code === error.PERMISSION_DENIED;
+        const message = blocked ? LOCATION_BLOCKED : LOCATION_NOT_FOUND;
+        if (auto) {
+          fallBack(message, !blocked);
+        } else if (!views.welcome.hidden) {
+          setWelcome(message, false, !blocked);
+        } else {
+          showNotice(message);
+        }
+      },
+      { timeout: 10000, maximumAge: 10 * 60 * 1000 }
+    );
+  }
+
+  // When the location can't be used on start: the last place seen, or the welcome card.
+  function fallBack(message, canRetry) {
+    const lastPlace = load("weather.lastPlace", null);
+    if (isPlace(lastPlace)) {
+      loadWeather(lastPlace);
+    } else {
+      showView("welcome");
+      setWelcome(message, false, canRetry);
+      announce(message);
+    }
+  }
+
+  async function startWithMyLocation() {
+    showView("welcome");
+    if (!("geolocation" in navigator)) {
+      fallBack("Search for a city above to see its weather.", false);
+      return;
+    }
+    // A browser that already said "no" would only say it again; don't ask.
+    let permission = "prompt";
+    try {
+      permission = (await navigator.permissions.query({ name: "geolocation" })).state;
+    } catch (e) {
+      // Older browsers can't tell us; just ask.
+    }
+    if (permission === "denied") {
+      fallBack(LOCATION_BLOCKED, false);
+    } else {
+      locateMe(true);
+    }
   }
 
   if ("geolocation" in navigator) {
     el.locate.hidden = false;
     el.locate.addEventListener("click", function () {
-      el.locate.classList.add("is-busy");
-      el.locate.disabled = true;
-      hideNotice();
-      announce("Finding your location…");
-
-      function done() {
-        el.locate.classList.remove("is-busy");
-        el.locate.disabled = false;
-      }
-
-      navigator.geolocation.getCurrentPosition(
-        function (position) {
-          done();
-          // 4 decimals is about 10 m: close enough for weather, and kinder to privacy in the URL.
-          const lat = Number(position.coords.latitude.toFixed(4));
-          const lon = Number(position.coords.longitude.toFixed(4));
-          loadWeather({ name: "Your location", region: coordinates(lat, lon), lat: lat, lon: lon, isMyLocation: true });
-        },
-        function (error) {
-          done();
-          locationFailed(error);
-        },
-        { timeout: 10000, maximumAge: 10 * 60 * 1000 }
-      );
+      locateMe(false);
+    });
+    el.welcomeLocate.addEventListener("click", function () {
+      locateMe(false);
     });
   }
 
@@ -791,7 +880,8 @@
 
   // The URL always names the place on screen, so it can be bookmarked or shared.
   function updateUrl(place) {
-    const params = new URLSearchParams({ name: place.name, lat: place.lat, lon: place.lon });
+    const params = new URLSearchParams({ lat: place.lat, lon: place.lon });
+    if (!place.unnamed) params.set("name", place.name);
     if (place.region) params.set("region", place.region);
     if (place.isMyLocation) params.set("here", "1");
     history.replaceState(null, "", "?" + params);
@@ -799,12 +889,15 @@
 
   function placeFromUrl() {
     const params = new URLSearchParams(window.location.search);
+    const here = params.get("here") === "1";
+    const name = params.get("name");
     const place = {
-      name: params.get("name") || "Selected place",
+      name: name || (here ? "Your location" : "Selected place"),
       region: params.get("region") || "",
       lat: parseFloat(params.get("lat")),
       lon: parseFloat(params.get("lon")),
-      isMyLocation: params.get("here") === "1",
+      isMyLocation: here,
+      unnamed: !name,
     };
     return isPlace(place) ? place : null;
   }
@@ -835,23 +928,16 @@
 
   // ---------- Start ----------
 
-  document.querySelectorAll("#welcome [data-lat]").forEach(function (button) {
-    button.addEventListener("click", function () {
-      const data = button.dataset;
-      loadWeather({ name: data.name, region: data.region, lat: Number(data.lat), lon: Number(data.lon) });
-    });
-  });
-
   setUnits(load("weather.units", "metric") === "imperial" ? "imperial" : "metric", false);
   updateOnline();
   renderSavedPlaces();
 
-  // A shared link wins, then the last place seen, else the welcome card.
-  const lastPlace = load("weather.lastPlace", null);
-  const startPlace = placeFromUrl() || (isPlace(lastPlace) ? lastPlace : null);
-  if (startPlace) {
-    loadWeather(startPlace);
+  // A shared link wins. Otherwise: where the visitor is now, then the last
+  // place seen, else the welcome card with a search box.
+  const linkedPlace = placeFromUrl();
+  if (linkedPlace) {
+    loadWeather(linkedPlace);
   } else {
-    showView("welcome");
+    startWithMyLocation();
   }
 })();

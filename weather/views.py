@@ -13,8 +13,8 @@ Status codes the API uses:
 from flask import Blueprint, current_app, render_template, request
 
 from . import client
-from .parsing import parse_cities, parse_forecast
-from .validation import validate_search, validate_weather
+from .parsing import parse_cities, parse_forecast, parse_place
+from .validation import validate_coordinates, validate_search, validate_weather
 
 bp = Blueprint("weather", __name__)
 
@@ -54,6 +54,24 @@ def search():
     except PARSE_ERRORS:
         return service_error("bad_data")
     return {"query": data["q"], "results": results}
+
+
+@bp.get("/api/place")
+def place():
+    """The name of the town at lat/lon, for "my location"."""
+    data, errors = validate_coordinates(request.args)
+    if errors:
+        return {"errors": errors}, 400
+    try:
+        # Rounded to about 1 km: enough for a town name, and nearby visitors share the cache.
+        found = parse_place(client.reverse_geocode(round(data["lat"], 2), round(data["lon"], 2)))
+    except client.WeatherServiceError as error:
+        return service_error(error.kind)
+    except PARSE_ERRORS:
+        return service_error("bad_data")
+    if found is None:
+        return {"error": "There is no town or city here.", "kind": "not_found"}, 404
+    return found
 
 
 @bp.get("/api/weather")

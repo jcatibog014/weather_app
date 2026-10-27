@@ -26,6 +26,8 @@ def test_home_page(client):
     for view in ("welcome", "skeleton", "error-card", "weather"):
         assert f'id="{view}"' in html
     assert "open-meteo.com" in html  # Open-Meteo's licence asks for credit
+    assert "openstreetmap.org/copyright" in html  # so does OpenStreetMap's
+    assert 'id="welcome-locate"' in html
 
 
 def test_every_weather_icon_has_a_drawing(client):
@@ -121,3 +123,28 @@ def test_search_with_strange_json_is_bad_data(client, monkeypatch):
     monkeypatch.setattr(weather_client, "search_cities", lambda name: {"results": [{"no": "name"}]})
     response = client.get("/api/search?q=Manila")
     assert response.get_json()["kind"] == "bad_data"
+
+
+def test_place(client, monkeypatch, place_json):
+    asked = []
+    monkeypatch.setattr(weather_client, "reverse_geocode", lambda lat, lon: asked.append((lat, lon)) or place_json)
+    response = client.get("/api/place?lat=14.5812&lon=121.0349")
+    assert response.status_code == 200
+    assert response.get_json() == {"name": "Mandaluyong", "region": "Metro Manila, Philippines"}
+    assert asked == [(14.58, 121.03)]  # rounded to about 1 km
+
+
+def test_place_at_sea_is_not_found(client, monkeypatch):
+    monkeypatch.setattr(weather_client, "reverse_geocode", lambda lat, lon: {"error": "Unable to geocode"})
+    response = client.get("/api/place?lat=0&lon=-30")
+    assert response.status_code == 404
+    assert response.get_json()["kind"] == "not_found"
+
+
+def test_place_bad_input(client):
+    assert client.get("/api/place?lat=1").status_code == 400
+
+
+def test_place_service_error(client, monkeypatch):
+    monkeypatch.setattr(weather_client, "reverse_geocode", raise_error("upstream"))
+    assert client.get("/api/place?lat=14.58&lon=121.03").status_code == 502

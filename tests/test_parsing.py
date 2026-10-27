@@ -5,7 +5,7 @@ forecast.json is a real answer for Manila, saved at 15:30 local time on
 """
 import pytest
 
-from weather.parsing import compass, parse_cities, parse_forecast, rows
+from weather.parsing import compass, parse_cities, parse_forecast, parse_place, rows
 
 
 @pytest.mark.parametrize(
@@ -43,6 +43,34 @@ def test_city_label_skips_missing_parts():
     city = parse_cities(raw)[0]
     assert city["label"] == "Somewhere, Nowhere"
     assert city["region"] == "Nowhere"
+
+
+def test_parse_place(place_json):
+    # A real answer: Mandaluyong has a "region" (Metro Manila) but no "state".
+    assert parse_place(place_json) == {"name": "Mandaluyong", "region": "Metro Manila, Philippines"}
+
+
+def test_no_place_at_sea():
+    # Nominatim's real answer for the middle of the Atlantic.
+    assert parse_place({"error": "Unable to geocode"}) is None
+
+
+def test_place_uses_town_when_there_is_no_city():
+    raw = {"address": {"town": "Tagaytay", "state": "Cavite", "country": "Philippines"}}
+    assert parse_place(raw) == {"name": "Tagaytay", "region": "Cavite, Philippines"}
+
+
+def test_place_region_does_not_repeat_the_name():
+    raw = {"address": {"city": "Singapore", "state": "Singapore", "country": "Singapore"}}
+    assert parse_place(raw) == {"name": "Singapore", "region": "Singapore"}
+
+
+def test_place_falls_back_to_the_top_level_name():
+    assert parse_place({"name": "Somewhere", "address": {}}) == {"name": "Somewhere", "region": ""}
+
+
+def test_place_without_any_name_is_none():
+    assert parse_place({"address": {"country": "Nowhere"}}) is None
 
 
 def test_current_weather(forecast_json):
