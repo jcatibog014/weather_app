@@ -4,12 +4,20 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>{% block title %}Weather · Current weather and 7-day forecast{% endblock %}</title>
-  <meta name="description" content="Current weather, the next 24 hours and a 7-day forecast for any city. Data from Open-Meteo.">
+  <title>{% block title %}Weather, weather lang! · Current weather and 7-day forecast{% endblock %}</title>
+  <meta name="description" content="Weather, weather lang! Current weather, the next 24 hours and a 7-day forecast for any city. Data from Open-Meteo.">
   {# The colour of the browser bar on phones. app.js updates it when the theme button is used. #}
   <meta name="theme-color" content="#eef3f9" media="(prefers-color-scheme: light)">
   <meta name="theme-color" content="#0c141e" media="(prefers-color-scheme: dark)">
+  {# App icons: the SVG for modern browsers, PNGs for older ones and for phone home screens. #}
   <link rel="icon" href="{{ url_for('static', filename='icons/logo.svg') }}" type="image/svg+xml">
+  <link rel="icon" href="{{ url_for('static', filename='icons/icon-32.png') }}" type="image/png" sizes="32x32">
+  <link rel="apple-touch-icon" href="{{ url_for('static', filename='icons/apple-touch-icon.png') }}">
+  <link rel="manifest" href="{{ url_for('static', filename='site.webmanifest') }}">
+  {# The Fredoka font, from Google Fonts. Until it arrives (or if it can't), the system font shows. #}
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fredoka:wght@400..700&display=swap">
   <script>
     // Runs before the page is drawn, so a saved dark theme doesn't flash light first.
     try {
@@ -27,8 +35,8 @@
 
   <header class="site-header">
     <a class="brand" href="{{ url_for('weather.index') }}">
-      {{ icon("wx-partly-cloudy", class="brand-logo", size=40) }}
-      <span>Weather</span>
+      <img class="brand-logo" src="{{ url_for('static', filename='icons/logo.svg') }}" width="44" height="44" alt="">
+      <span class="brand-name"><span>Weather,</span> <span>weather <em>lang!</em></span></span>
     </a>
     {% block controls %}{% endblock %}
   </header>

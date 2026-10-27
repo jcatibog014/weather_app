@@ -2,6 +2,9 @@
 
 The client functions are replaced with fakes, so no test uses the internet.
 """
+import json
+import re
+
 import pytest
 
 from weather import client as weather_client
@@ -29,6 +32,25 @@ def test_home_page(client):
     assert "openstreetmap.org/copyright" in html  # so does OpenStreetMap's
     assert 'id="welcome-locate"' in html
     assert 'id="local-date"' in html and 'id="local-time"' in html
+
+
+def test_brand_and_font(client):
+    html = client.get("/").get_data(as_text=True)
+    assert "<title>Weather, weather lang!" in html
+    assert '<span>Weather,</span> <span>weather <em>lang!</em></span>' in html
+    assert "family=Fredoka" in html
+
+
+def test_app_manifest_and_icons(client):
+    response = client.get("/static/site.webmanifest")
+    assert response.content_type.startswith("application/manifest+json")
+    manifest = json.loads(response.get_data(as_text=True))
+    assert manifest["name"] == "Weather, weather lang!"
+    for icon in manifest["icons"]:
+        assert client.get("/static/" + icon["src"]).status_code == 200, icon["src"]
+    html = client.get("/").get_data(as_text=True)
+    for href in re.findall(r'<link rel="(?:icon|apple-touch-icon|manifest)" href="([^"]+)"', html):
+        assert client.get(href).status_code == 200, href
 
 
 def test_every_weather_icon_has_a_drawing(client):

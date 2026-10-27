@@ -9,6 +9,7 @@
 (function () {
   "use strict";
 
+  const APP_NAME = "Weather, weather lang!";
   const SEARCH_DELAY_MS = 300; // wait for a pause in typing, so we don't search on every key
   const REQUEST_TIMEOUT_MS = 15000; // a bit longer than the server's own wait for Open-Meteo
   const PLACE_TIMEOUT_MS = 6000; // a town name is nice to have; don't hold the weather back for long
@@ -307,7 +308,7 @@
     });
     if (name !== "weather") {
       document.body.dataset.mood = "default";
-      document.title = "Weather · Current weather and 7-day forecast";
+      document.title = APP_NAME + " · Current weather and 7-day forecast";
     }
   }
 
@@ -429,7 +430,7 @@
     const today = data.daily[0];
 
     document.body.dataset.mood = now.condition.mood;
-    document.title = place.name + " · Weather";
+    document.title = place.name + " · " + APP_NAME;
 
     el.hereBadge.hidden = !place.isMyLocation;
     el.placeName.textContent = place.name;
