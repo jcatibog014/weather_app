@@ -85,6 +85,7 @@
     announcer: byId("announcer"),
     placeName: byId("place-name"),
     placeRegion: byId("place-region"),
+    localDate: byId("local-date"),
     localTime: byId("local-time"),
     favourite: byId("favourite"),
     currentIcon: byId("current-icon"),
@@ -248,17 +249,27 @@
     hour: new Intl.DateTimeFormat("en", { hour: "numeric", timeZone: "UTC" }), // "3 PM"
     clock: new Intl.DateTimeFormat("en", { hour: "numeric", minute: "2-digit", timeZone: "UTC" }), // "5:49 AM"
     weekday: new Intl.DateTimeFormat("en", { weekday: "short", timeZone: "UTC" }), // "Wed"
+    shortDate: new Intl.DateTimeFormat("en", { month: "short", day: "numeric", timeZone: "UTC" }), // "Oct 28"
   };
 
-  // The real time there right now. timezone is a name like "Asia/Manila".
-  function localNow(timezone) {
+  // The real date and time there right now, e.g. {date: "Tuesday, October 27, 2026", time: "6:09 PM"}.
+  // timezone is a name like "Asia/Manila"; Open-Meteo sends it with the forecast.
+  function localNow(timezone, fallbackTime) {
+    let now = new Date();
+    let zone = timezone;
     try {
-      return new Intl.DateTimeFormat("en", {
-        weekday: "long", hour: "numeric", minute: "2-digit", timeZone: timezone,
-      }).format(new Date());
+      new Intl.DateTimeFormat("en", { timeZone: timezone });
     } catch (e) {
-      return ""; // a time zone name this browser doesn't know
+      // A time zone name this browser doesn't know: use the time Open-Meteo sent instead.
+      now = placeDate(fallbackTime);
+      zone = "UTC";
     }
+    return {
+      date: new Intl.DateTimeFormat("en", {
+        weekday: "long", month: "long", day: "numeric", year: "numeric", timeZone: zone,
+      }).format(now),
+      time: new Intl.DateTimeFormat("en", { hour: "numeric", minute: "2-digit", timeZone: zone }).format(now),
+    };
   }
 
   function timeAgo(time) {
@@ -452,7 +463,12 @@
   function renderHours(hours) {
     el.hourly.replaceChildren(...hours.map(function (hour, index) {
       const item = fromTemplate(el.hourTemplate);
-      item.querySelector(".hour-time").textContent = index === 0 ? "Now" : formats.hour.format(placeDate(hour.time));
+      const time = placeDate(hour.time);
+      let label = formats.hour.format(time);
+      if (index === 0) label = "Now";
+      else if (hour.time.endsWith("T00:00")) label = formats.weekday.format(time) + " " + label; // a new day starts: "Wed 12 AM"
+      item.querySelector(".hour-time").textContent = label;
+      item.classList.toggle("new-day", index > 0 && hour.time.endsWith("T00:00"));
       setIcon(item.querySelector(".wx-icon"), hour.condition.icon);
       item.querySelector(".hour-label").textContent = hour.condition.label;
       item.querySelector(".hour-temp").textContent = degrees(hour.temperature);
@@ -470,7 +486,9 @@
 
     el.daily.replaceChildren(...days.map(function (day, index) {
       const item = fromTemplate(el.dayTemplate);
-      item.querySelector(".day-name").textContent = index === 0 ? "Today" : formats.weekday.format(placeDate(day.date));
+      const date = placeDate(day.date);
+      item.querySelector(".day-weekday").textContent = index === 0 ? "Today" : formats.weekday.format(date);
+      item.querySelector(".day-date").textContent = formats.shortDate.format(date);
       setIcon(item.querySelector(".wx-icon"), day.condition.icon);
       item.querySelector(".day-label").textContent = day.condition.label;
       item.querySelector(".day-rain").textContent = percent(day.precipitation_chance);
@@ -483,14 +501,23 @@
     }));
   }
 
-  // The clock and "Updated 3 minutes ago" keep moving while the page is open.
+  // The clock, the date and "Updated 3 minutes ago" keep moving while the page is open.
   function tick() {
     if (!state.shown) return;
-    const time = localNow(state.shown.data.timezone);
-    el.localTime.textContent = time ? "Local time: " + time : "";
+    const now = localNow(state.shown.data.timezone, state.shown.data.time);
+    el.localDate.textContent = now.date;
+    el.localTime.textContent = now.time;
     el.updated.textContent = "Updated " + timeAgo(state.shown.loadedAt);
   }
-  setInterval(tick, 30000);
+
+  // Tick right after each new minute starts, so the clock is never a minute behind.
+  function tickEveryMinute() {
+    setTimeout(function () {
+      tick();
+      tickEveryMinute();
+    }, 60000 - (Date.now() % 60000) + 50);
+  }
+  tickEveryMinute();
 
   // ---------- Units ----------
 

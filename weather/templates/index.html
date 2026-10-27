@@ -103,7 +103,11 @@
           <p class="here-badge" id="here-badge" hidden>{{ icon("i-locate", size=14) }} Your location</p>
           <h1 id="place-name"></h1>
           <p class="muted" id="place-region"></p>
-          <p class="muted" id="local-time"></p>
+          {# The place's own date and clock (Manila's time for Manila, Tokyo's for Tokyo). #}
+          <p class="place-clock">
+            <span class="visually-hidden">Local date and time: </span>
+            <span id="local-date"></span><span aria-hidden="true"> · </span><strong id="local-time"></strong>
+          </p>
         </div>
         <button type="button" class="icon-button favourite" id="favourite" aria-label="Favourite" aria-pressed="false">
           {{ icon("i-star", size=22) }}
@@ -162,7 +166,7 @@
   </template>
   <template id="day-template">
     <li class="day">
-      <span class="day-name"></span>
+      <span class="day-name"><span class="day-weekday"></span><span class="day-date"></span></span>
       <svg class="wx-icon" width="36" height="36" aria-hidden="true" focusable="false"><use></use></svg>
       <span class="visually-hidden day-label"></span>
       <span class="rain-chance">{{ icon("i-drop", class="ui-icon drop", size=12) }}<span class="visually-hidden">Rain chance </span><span class="day-rain"></span></span>

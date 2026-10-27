@@ -11,9 +11,10 @@ The weather data comes from [Open-Meteo](https://open-meteo.com/). Open-Meteo is
 - **Your location first.** When you open the app, it shows the weather where you are, with the name of your town (for example "Mandaluyong"). The browser asks you first.
 - **Search** for a city. Use the arrow keys and Enter, or click a place.
 - Go back to your location with the 📍 button.
+- See the **date and time** in that place, for example "Tuesday, October 27, 2026 · 6:18 PM". The clock moves every minute.
 - See the weather **now**: temperature, "feels like", humidity, wind, rain chance, UV, sunrise and sunset.
-- See the **next 24 hours**. Swipe or scroll the row.
-- See the **next 7 days**. The bar shows the lowest and the highest temperature.
+- See the **next 24 hours**. Swipe or scroll the row. At midnight you see the new day ("Wed 12 AM").
+- See the **next 7 days**, with the date of each day. The bar shows the lowest and the highest temperature.
 - Change **°C / °F**. The app remembers your choice.
 - **Favourites** (★) and **recent** cities. Click one to open it again.
 - **Light and dark** mode.
