@@ -1,7 +1,7 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="170 170 460 460">
-  <!-- The "Weather, weather lang!" logo, drawn from docs/brand/weather-weather-lang-logo.png.
+  <!-- The "Ambon Alert" logo, drawn from docs/brand/ambon-alert-logo.png.
        The header, the favicon and the PNG app icons all come from this file. -->
-  <title>Weather, weather lang!</title>
+  <title>Ambon Alert</title>
   <defs>
     <!-- The cloud is drawn twice: light blue, then dark blue cut to its right half. -->
     <g id="cloud">

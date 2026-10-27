@@ -1,6 +1,6 @@
 <img src="weather/static/icons/logo.svg" alt="" width="96">
 
-# Weather, weather lang!
+# Ambon Alert
 
 A weather website. Type a city. You see the weather now, the next 24 hours and the next 7 days.
 

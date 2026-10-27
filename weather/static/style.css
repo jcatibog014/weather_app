@@ -1,4 +1,4 @@
-/* "Weather, weather lang!" styles. The font is Fredoka (loaded in base.html).
+/* "Ambon Alert" styles. The font is Fredoka (loaded in base.html).
    Colours live in variables on :root. The dark theme swaps the variables:
    it follows the system setting, unless the visitor picked a theme with the
    toggle (saved as data-theme on <html>).
@@ -20,7 +20,7 @@
   --focus: #d97706;
   --error: #b42318;
   --star: #b45309;
-  --highlight: #9a4a00;       /* the sun's orange, dark enough for text: "lang!" in the name */
+  --highlight: #9a4a00;       /* the sun's orange, dark enough for text: "Alert" in the name */
   --shimmer: rgb(255 255 255 / 70%);
   --shadow: 0 1px 2px rgb(19 32 48 / 6%), 0 10px 30px rgb(19 32 48 / 8%);
   --radius: 18px;
@@ -205,6 +205,7 @@ a { color: var(--accent); }
   text-decoration: none;
 }
 .brand-logo { display: block; flex: none; }
+.brand-name { white-space: nowrap; }
 .brand-name em { font-style: normal; color: var(--highlight); }
 
 .controls { display: flex; align-items: center; gap: 8px; }
@@ -495,7 +496,7 @@ button { font: inherit; }
 .current-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; }
 .current-head h1 { font-size: 1.75rem; line-height: 1.2; letter-spacing: -0.01em; }
 .place-clock { margin-top: 2px; color: var(--muted); }
-.place-clock strong { color: var(--text); }
+.place-clock strong { color: var(--text); white-space: nowrap; } /* keep "12:07 AM" together */
 
 .here-badge {
   display: inline-flex;
@@ -648,9 +649,7 @@ button { font: inherit; }
 /* ---------- Phones ---------- */
 
 @media (max-width: 520px) {
-  /* The name goes on two lines ("Weather," / "weather lang!") to leave room for the buttons. */
-  .brand { gap: 6px; font-size: 0.95rem; }
-  .brand-name > span { display: block; }
+  .brand { gap: 6px; font-size: 1.1rem; }
   .brand-logo { width: 38px; height: 38px; }
   .controls { gap: 6px; }
   .container { padding-top: 14px; gap: 12px; }

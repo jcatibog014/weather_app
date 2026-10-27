@@ -9,7 +9,7 @@
 (function () {
   "use strict";
 
-  const APP_NAME = "Weather, weather lang!";
+  const APP_NAME = "Ambon Alert";
   const SEARCH_DELAY_MS = 300; // wait for a pause in typing, so we don't search on every key
   const REQUEST_TIMEOUT_MS = 15000; // a bit longer than the server's own wait for Open-Meteo
   const PLACE_TIMEOUT_MS = 6000; // a town name is nice to have; don't hold the weather back for long

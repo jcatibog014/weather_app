@@ -23,7 +23,7 @@ def test_home_page(client):
     response = client.get("/")
     assert response.status_code == 200
     html = response.get_data(as_text=True)
-    assert "<title>Weather" in html
+    assert "<title>Ambon Alert" in html
     assert 'role="combobox"' in html
     # Every state app.js switches between is on the page.
     for view in ("welcome", "skeleton", "error-card", "weather"):
@@ -36,8 +36,8 @@ def test_home_page(client):
 
 def test_brand_and_font(client):
     html = client.get("/").get_data(as_text=True)
-    assert "<title>Weather, weather lang!" in html
-    assert '<span>Weather,</span> <span>weather <em>lang!</em></span>' in html
+    assert "<title>Ambon Alert" in html
+    assert '<span class="brand-name">Ambon <em>Alert</em></span>' in html
     assert "family=Fredoka" in html
 
 
@@ -45,7 +45,7 @@ def test_app_manifest_and_icons(client):
     response = client.get("/static/site.webmanifest")
     assert response.content_type.startswith("application/manifest+json")
     manifest = json.loads(response.get_data(as_text=True))
-    assert manifest["name"] == "Weather, weather lang!"
+    assert manifest["name"] == "Ambon Alert"
     for icon in manifest["icons"]:
         assert client.get("/static/" + icon["src"]).status_code == 200, icon["src"]
     html = client.get("/").get_data(as_text=True)

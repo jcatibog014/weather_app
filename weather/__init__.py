@@ -1,4 +1,4 @@
-"""Weather, weather lang! A weather app: current weather and forecasts from Open-Meteo.
+"""Ambon Alert A weather app: current weather and forecasts from Open-Meteo.
 
 Flask builds the app inside create_app() (the "app factory" pattern).
 Tests call it with their own settings, so each test gets a fresh app.

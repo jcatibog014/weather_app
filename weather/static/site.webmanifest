@@ -1,6 +1,6 @@
 {
-  "name": "Weather, weather lang!",
-  "short_name": "Weather lang",
+  "name": "Ambon Alert",
+  "short_name": "Ambon Alert",
   "description": "Current weather, the next 24 hours and a 7-day forecast for any city.",
   "start_url": "/",
   "display": "standalone",
