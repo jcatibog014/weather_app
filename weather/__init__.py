@@ -1,4 +1,4 @@
-"""Ambon Alert A weather app: current weather and forecasts from Open-Meteo.
+"""Ambon Alert, a weather app: current weather and forecasts from Open-Meteo.
 
 Flask builds the app inside create_app() (the "app factory" pattern).
 Tests call it with their own settings, so each test gets a fresh app.
@@ -14,6 +14,8 @@ mimetypes.add_type("application/manifest+json", ".webmanifest")
 
 def create_app(test_config=None):
     app = Flask(__name__)
+    # The biggest body we accept (POST /api/forecast). A 7-day forecast is about 20 KB.
+    app.config["MAX_CONTENT_LENGTH"] = 256 * 1024
     if test_config:
         app.config.update(test_config)
 
@@ -27,5 +29,9 @@ def create_app(test_config=None):
         if request.path.startswith("/api/"):
             return {"error": "There is no such API address.", "kind": "not_found"}, 404
         return render_template("error.html", code=404, message="We couldn't find that page."), 404
+
+    @app.errorhandler(413)
+    def too_large(error):
+        return {"error": "That's too much data to send.", "kind": "too_large"}, 413
 
     return app

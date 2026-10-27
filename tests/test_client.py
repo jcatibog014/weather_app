@@ -118,6 +118,31 @@ def test_imperial_forecast_asks_for_fahrenheit_and_mph(monkeypatch):
     assert params["wind_speed_unit"] == "mph"
 
 
+def test_forecast_is_remembered_for_ten_minutes(monkeypatch):
+    calls = []
+    monkeypatch.setattr(client.requests, "get", fake_get(FakeResponse(data={"n": 1}), calls=calls))
+    now = [1000.0]
+    monkeypatch.setattr(client.time, "monotonic", lambda: now[0])
+
+    assert get_forecast(14.6, 121.0) == {"n": 1}
+    assert get_forecast(14.601, 121.002) == {"n": 1}  # same town (rounded to 2 decimals)
+    assert len(calls) == 1
+
+    get_forecast(14.6, 121.0, "imperial")  # other units: a different question
+    assert len(calls) == 2
+
+    now[0] += client.CACHE_SECONDS  # 10 minutes later: ask again
+    get_forecast(14.6, 121.0)
+    assert len(calls) == 3
+
+
+def test_failed_forecast_is_not_remembered(monkeypatch):
+    monkeypatch.setattr(client.requests, "get", fake_get(FakeResponse(429, data={"error": True})))
+    with pytest.raises(WeatherServiceError):
+        get_forecast(14.6, 121.0)
+    assert client.FORECAST_CACHE == {}
+
+
 def test_reverse_geocode_says_who_we_are(monkeypatch):
     calls = []
     monkeypatch.setattr(client.requests, "get", fake_get(FakeResponse(data={}), calls=calls))

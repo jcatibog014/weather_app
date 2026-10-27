@@ -58,6 +58,15 @@ The app always tells you what is happening.
 3. Our server checks the answer and makes it small and clean.
 4. The browser draws the weather.
 
+Our server keeps each forecast for 10 minutes. Then many visits ask Open-Meteo only one time.
+
+**Plan B.** Open-Meteo is free, but it has a limit for each internet address. On Render, many apps share one address. Sometimes Open-Meteo says "too many requests" (429) to our server. Then:
+
+1. Our server answers `busy` and tells the browser what to ask.
+2. The browser asks Open-Meteo itself. It has its own address and its own limit.
+3. The browser sends the answer to our server (`POST /api/forecast`).
+4. Our server reads it with the same Python code, and the browser draws the weather.
+
 ## Tools, languages and platforms
 
 | Name | What it is | What we use it for |
@@ -99,6 +108,7 @@ The tests do not use the internet. They use saved Open-Meteo answers in `tests/f
 | `/api/place?lat=14.58&lon=121.03` | The name of the town at this point (`Mandaluyong`) |
 | `/api/weather?lat=14.6&lon=121` | Weather now, the next 24 hours and the next 7 days |
 | `/api/weather?lat=14.6&lon=121&units=imperial` | The same, in °F, mph and inches |
+| `POST /api/forecast` | Plan B: send Open-Meteo's answer, get the same weather as `/api/weather` |
 
 When something is wrong, the API says so:
 

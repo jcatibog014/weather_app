@@ -10,6 +10,7 @@ Open-Meteo can't turn coordinates back into a place name, so for "my
 location" we ask OpenStreetMap's Nominatim instead (also free, no key):
 https://nominatim.org/release-docs/latest/api/Reverse/
 """
+import time
 from functools import lru_cache
 
 import requests
@@ -125,8 +126,9 @@ def reverse_geocode(lat, lon):
     return get_json(REVERSE_GEOCODING_URL, params, headers={"User-Agent": USER_AGENT})
 
 
-def get_forecast(lat, lon, units="metric"):
-    """Current weather, 7 days of hourly data and a 7-day summary for one place."""
+def forecast_params(lat, lon, units="metric"):
+    """The query for Open-Meteo's forecast API. views.py also gives it to the
+    browser for Plan B, so both ask Open-Meteo the same question."""
     params = {
         "latitude": lat,
         "longitude": lon,
@@ -138,4 +140,27 @@ def get_forecast(lat, lon, units="metric"):
     }
     if units == "imperial":
         params.update(IMPERIAL_PARAMS)
-    return get_json(FORECAST_URL, params)
+    return params
+
+
+# Remember each forecast for 10 minutes, so many visits (or Refresh clicks) for
+# the same place cost Open-Meteo one request. Open-Meteo's free limit is counted
+# per IP address, and on a free host many apps share one address.
+CACHE_SECONDS = 10 * 60
+CACHE_SIZE = 500
+FORECAST_CACHE = {}  # (lat, lon, units) -> (time saved, Open-Meteo's answer)
+
+
+def get_forecast(lat, lon, units="metric"):
+    """Current weather, 7 days of hourly data and a 7-day summary for one place."""
+    # Rounded to about 1 km, so people in the same town share one saved answer.
+    key = (round(lat, 2), round(lon, 2), units)
+    saved = FORECAST_CACHE.get(key)
+    if saved and time.monotonic() - saved[0] < CACHE_SECONDS:
+        return saved[1]
+
+    data = get_json(FORECAST_URL, forecast_params(*key))  # errors are not saved
+    if len(FORECAST_CACHE) >= CACHE_SIZE:
+        FORECAST_CACHE.clear()  # simple: start again instead of finding the oldest
+    FORECAST_CACHE[key] = (time.monotonic(), data)
+    return data

@@ -10,11 +10,13 @@ FIXTURES = Path(__file__).parent / "fixtures"
 
 
 @pytest.fixture(autouse=True)
-def empty_place_cache():
-    """reverse_geocode() remembers answers; start every test with an empty memory."""
+def empty_caches():
+    """reverse_geocode() and get_forecast() remember answers; start every test with an empty memory."""
     weather_client.reverse_geocode.cache_clear()
+    weather_client.FORECAST_CACHE.clear()
     yield
     weather_client.reverse_geocode.cache_clear()
+    weather_client.FORECAST_CACHE.clear()
 
 
 def load_fixture(name):
